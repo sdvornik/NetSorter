@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NetSorter Web Interface</title>
+    <style type="text/css">
+        .commandWindowClass {
+            width: 500px;
+            height: 100px;
+            margin: 0 auto;
+            text-align: center;
+            vertical-align: middle;
+            border: solid 1px black;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: large;
+        }
+        .titleClass {
+            width: 1000px;
+            height: 20px;
+            text-align: center;
+            margin: 20px auto;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: xx-large;
+        }
+        .logWindowClass {
+            width: 1000px;
+            height: 500px;
+            margin: 0 auto;
+            border: solid 1px black;
+            overflow: auto;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: large;
+        }
+        .labelLine {
+            margin: 5px 0px;
+            display: block;
+        }
+        .buttonClass {
+            width: 100px;
+        }
+        .inputField {
+            width: 200px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="titleClass">NetSorter Web Interface</div>
+<div class="titleClass" style="font-size: x-large;">Command Window</div>
+<div class="commandWindowClass">
+
+
+    <label for="genTestFile" class="labelLine">
+        Generate Test file
+        <input type="button" id="genTestFile" value="Generate" class="buttonClass" />
+
+    </label>
+    <label for="shutdown" class="labelLine">
+        Shutdown server
+        <input type="button" id="shutdown" value="Shutdown" class="buttonClass" />
+
+    </label>
+    <label for="runTask" class="labelLine">
+        Sort File
+        <input type="text" id="textField" class="inputField" />
+        <input type="button" id="runTask" value="Run" class="buttonClass" />
+    </label>
+</div>
+<div class="titleClass" style="font-size: x-large;">Log Window</div>
+<div id="logWindow" class="logWindowClass"></div>
+</body>
+<script type="text/javascript">
+
+    (function(doc, win) {
+
+        var socket = new WebSocket("ws://"+win.location.host+"/ws"),
+            logWindow = doc.getElementById("logWindow"),
+            generateButton = doc.getElementById("genTestFile"),
+            shutdownButton = doc.getElementById("shutdown"),
+            runButton = doc.getElementById("runTask"),
+            pathToFileInput = doc.getElementById("textField");
+
+        generateButton.onclick = function() {
+            logWindow.innerHTML+="Try to generate file on master node<br>";
+            var msg = JSON.stringify({type : "GENERATE", content: "null"});
+            socket.send(msg);
+        };
+
+        shutdownButton.onclick = function() {
+            logWindow.innerHTML+="Try to shutdown server<br>";
+            var msg = JSON.stringify({type : "SHUTDOWN", content: "null"});
+            socket.send(msg);
+        };
+
+        runButton.onclick = function() {
+            var pathToFile = pathToFileInput.value.trim();
+            if(pathToFile.length == 0) {
+                logWindow.innerHTML+="Input field empty. Task not start<br>";
+                return;
+            }
+            logWindow.innerHTML+="Try to start sort task<br>";
+            var msg = JSON.stringify({type : "RUN", content: pathToFile});
+            socket.send(msg);
+        };
+
+        socket.onopen = function() {
+            logWindow.innerHTML="Connection established<br>";
+
+        };
+        socket.onclose = function(e) {
+            if (e.wasClean) {
+                logWindow.innerHTML+="Connection was closed. Message: "+e.message+"<br>";
+            }
+            else {
+                logWindow.innerHTML+="Connection was killed. Message: " + e.message + "<br>";
+            }
+        };
+
+        socket.onmessage = function(e) {
+            logWindow.innerHTML+="Data received: "+ e.data + "<br>";
+        };
+
+        socket.onerror = function(e) {
+            logWindow.innerHTML+="Error: " + e.message + "<br>";
+        };
+
+
+    })(document, window);
+</script>
+
+</html>
