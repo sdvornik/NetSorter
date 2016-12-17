@@ -7,7 +7,7 @@ public final class InsertionSort extends Sorter {
         super(longArr);
     }
 
-    public void sort(){
+    public long[] sort(){
         for(int j = 1; j< longArr.length; ++j){
             long key = longArr[j];
             int i = j - 1;
@@ -17,5 +17,6 @@ public final class InsertionSort extends Sorter {
             }
             longArr[i + 1] = key;
         }
+        return longArr;
     }
 }

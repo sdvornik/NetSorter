@@ -8,7 +8,7 @@ public final class MergingSortNoRecursive extends Sorter {
         super(longArr);
     }
 
-    public void sort() {
+    public long[] sort() {
         int totalLength = longArr.length;
 
         for(
@@ -53,5 +53,6 @@ public final class MergingSortNoRecursive extends Sorter {
                 }
             }
         }
+        return longArr;
     }
 }

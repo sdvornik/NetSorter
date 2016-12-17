@@ -12,9 +12,11 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SortLongJUnit4Test extends Assert {
 
-    private final static int ARRAY_LENGTH = 1024*1024;
-    private final static long[] TEST_ARRAY = new long[ARRAY_LENGTH];
-    private final static ThreadLocalRandom random = ThreadLocalRandom.current();
+    private final static int ARRAY_LENGTH = 256;//1024*1024;
+
+    private final ThreadLocalRandom random = ThreadLocalRandom.current();
+
+    private final long[] TEST_ARRAY = new long[ARRAY_LENGTH];
 
     @Before
     public void generateLongArray() {

@@ -12,7 +12,7 @@ public abstract class Sorter {
         this.longArr = longArr;
     }
 
-    public abstract void sort();
+    public abstract long[] sort();
 
     protected void swapElmInLongArr(int i, int j){
         long temp = longArr[i];

@@ -8,8 +8,9 @@ public final class MergingSort extends Sorter {
         super(longArr);
     }
 
-    public void sort(){
+    public long[] sort(){
         mergingSortRecursive(0, longArr.length-1);
+        return longArr;
     }
 
     /**

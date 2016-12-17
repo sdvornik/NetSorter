@@ -6,8 +6,9 @@ public final class QuickSort extends Sorter {
         super(longArr);
     }
 
-    public void sort() {
+    public long[] sort() {
         quickSort(0, longArr.length - 1);
+        return longArr;
     }
 
     /**

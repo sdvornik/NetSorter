@@ -13,8 +13,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SortBytesJunit4Test {
     private final static int ARRAY_LENGTH = 1024*1024;
-    private final static ByteBuf TEST_BYTE_BUF = Unpooled.buffer(ARRAY_LENGTH*Long.BYTES);
-    private final static ThreadLocalRandom random = ThreadLocalRandom.current();
+    private final ByteBuf TEST_BYTE_BUF = Unpooled.buffer(ARRAY_LENGTH*Long.BYTES);
+    private final ThreadLocalRandom random = ThreadLocalRandom.current();
 
     @Before
     public void generateLongArray() {
