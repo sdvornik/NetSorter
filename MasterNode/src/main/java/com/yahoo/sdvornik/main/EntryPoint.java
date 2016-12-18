@@ -46,8 +46,6 @@ public class EntryPoint {
 
         MasterServer masterServer = new MasterServer(masterEventLoopGroup, masterChannelGroup);
         masterServer.init();
-
-        log.info("That's all");
     }
 
     public static void sendMsgToWebSocketGroup(String msg) {
@@ -68,6 +66,10 @@ public class EntryPoint {
 
     public static void removeChannelFromWebSocketGroup(Channel channel) {
         wsChannelGroup.remove(channel);
+    }
+
+    public static fj.data.List<Channel> getMasterChannelList() {
+        return fj.data.List.iterableList(masterChannelGroup);
     }
 
     public static void stop() {

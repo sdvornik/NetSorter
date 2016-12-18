@@ -12,24 +12,24 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SortLongJUnit4Test extends Assert {
 
-    private final static int ARRAY_LENGTH = 256;//1024*1024;
+    private final static int ARRAY_LENGTH = 1024*1024;
 
     private final ThreadLocalRandom random = ThreadLocalRandom.current();
 
-    private final long[] TEST_ARRAY = new long[ARRAY_LENGTH];
+    private final long[] testArray = new long[ARRAY_LENGTH];
 
     @Before
     public void generateLongArray() {
-        for(int i = 0; i < TEST_ARRAY.length; ++i) {
-            TEST_ARRAY[i] = random.nextLong();
+        for(int i = 0; i < testArray.length; ++i) {
+            testArray[i] = random.nextLong();
         }
     }
 
     @After
     public void clearLongArray() {
-        Arrays.fill(TEST_ARRAY,0L);
+        Arrays.fill(testArray,0L);
     }
-
+/*
     @Test
     public void testBubbleSort() throws Exception{
         commonTest(BubbleSort.class);
@@ -39,7 +39,7 @@ public class SortLongJUnit4Test extends Assert {
     public void testInsertionSort() throws Exception{
         commonTest(InsertionSort.class);
     }
-
+*/
     @Test
     public void testMergingSort() throws Exception{
         commonTest(MergingSort.class);
@@ -61,19 +61,19 @@ public class SortLongJUnit4Test extends Assert {
         };
 
         Constructor<?> ctor = clazz.getConstructor(long[].class);
-        Sorter sorter = (Sorter)ctor.newInstance(new Object[]{TEST_ARRAY});
+        Sorter sorter = (Sorter)ctor.newInstance(new Object[]{testArray});
 
         long start = System.nanoTime();
-        sorter.sort();
+        long[] sortedArr = sorter.sort();
         long end = System.nanoTime();
-        Assert.assertTrue(checkSortedArray());
+        Assert.assertTrue(checkSortedArray(sortedArr));
         System.out.println("Algorithm "+clazz.getSimpleName()+": "+(end-start)/1000000+" ms");
     }
 
-    private boolean checkSortedArray() {
+    private boolean checkSortedArray(long[] sortedArr) {
         boolean res = true;
-        for(int i = 0; i < TEST_ARRAY.length-1; ++i) {
-            res &= TEST_ARRAY[i] <= TEST_ARRAY[i+1];
+        for(int i = 0; i < sortedArr.length-1; ++i) {
+            res &= sortedArr[i] <= sortedArr[i+1];
         }
         return res;
     }

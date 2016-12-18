@@ -1,13 +1,12 @@
 package com.yahoo.sdvornik.worker;
 
+import com.yahoo.sdvornik.Constants;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,10 +34,23 @@ public class WorkerClient {
         workerBootstrap.group(workerGroup)
                 .channel(NioSocketChannel.class)
                 .remoteAddress(address)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.SO_KEEPALIVE, true)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
+
+                        ch.pipeline().addLast(
+                                new LengthFieldBasedFrameDecoder(
+                                        2*Constants.DEFAULT_CHUNK_SIZE_IN_KEYS*Long.BYTES,
+                                        0,
+                                        Long.BYTES,
+                                        0,
+                                        Long.BYTES
+                                )
+                        );
                         ch.pipeline().addLast(new WorkerClientHandler());
+
                     }
                 });
         ChannelFuture workerFuture = workerBootstrap.connect();

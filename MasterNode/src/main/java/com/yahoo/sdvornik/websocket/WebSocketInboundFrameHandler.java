@@ -1,9 +1,12 @@
 package com.yahoo.sdvornik.websocket;
 
+import com.yahoo.sdvornik.Constants;
 import com.yahoo.sdvornik.generator.KeyGenerator;
 import com.yahoo.sdvornik.main.EntryPoint;
+import com.yahoo.sdvornik.master.MasterTaskSender;
 import com.yahoo.sdvornik.server.WebSocketServer;
 import fj.Try;
+import fj.Unit;
 import fj.data.Validation;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
@@ -14,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
 
@@ -33,14 +37,14 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
             EntryPoint.addChannelToWebSocketGroup(ctx.channel());
 
             ctx.writeAndFlush(new TextWebSocketFrame("Successfully connected to Master node"));
-            log.info("WebSocket client connected. ID: " + ctx.channel().id().asLongText());
+            log.info("WebSocket client connected. ID: " + ctx.channel().id().asShortText());
 
             ChannelFuture closeFuture = ctx.channel().closeFuture();
 
             closeFuture.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
-                    log.info("WebSocket client disconnected. ID: " + ctx.channel().id().asLongText());
+                    log.info("WebSocket client disconnected. ID: " + ctx.channel().id().asShortText());
                     EntryPoint.removeChannelFromWebSocketGroup(ctx.channel());
                 }
             });
@@ -51,12 +55,13 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
     }
 
     //TODO remove
+    /*
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         EntryPoint.removeChannelFromWebSocketGroup(ctx.channel());
         log.info("WebSocket client disconnected. ID: " + ctx.channel().id());
     }
-
+*/
 
 
     @Override
@@ -102,7 +107,36 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
             case("SHUTDOWN"):
                 EntryPoint.stop();
                 break;
+
             case("RUN"):
+                final Path pathToFile = (content == null) ?
+                        Paths.get(System.getProperty("user.home"), Constants.DEFAULT_FILE_NAME) :
+                        Paths.get(content);
+                log.info(pathToFile.toString());
+                ctx.executor().execute(new Runnable(){
+                    @Override
+                    public void run() {
+                        ctx.executor().execute(
+                                new Runnable() {
+
+                                    @Override
+                                    public void run() {
+                                        Validation<? extends Exception, Unit> val =
+                                               new MasterTaskSender(pathToFile).distributeTask();
+                                        String msg = null;
+                                        if(val.isFail()) {
+                                            msg = "Can't distribute task: "+val.fail().getMessage();
+                                        }
+                                        else {
+                                            msg = "Task successfully distributed";
+                                        }
+                                        ctx.writeAndFlush(new TextWebSocketFrame(msg));
+                                        log.info(msg);
+                                    }
+                                }
+                        );
+                    }
+                });
                 break;
         }
     }

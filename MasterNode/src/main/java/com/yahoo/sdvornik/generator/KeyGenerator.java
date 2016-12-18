@@ -45,12 +45,19 @@ public enum KeyGenerator {
                     if(isLocked) {
                         throw new IllegalStateException("File is locked");
                     }
-                    Files.deleteIfExists(pathToFile);
-                    Files.createFile(pathToFile);
-                    writeToFile(pathToFile, size_in_bytes);
-                    boolean isUnlocked = lock.compareAndSet(1,0);
-                    if(!isUnlocked) {
-                        throw new IllegalStateException("Can't unlock locked file");
+                    try {
+                        Files.deleteIfExists(pathToFile);
+                        Files.createFile(pathToFile);
+                        writeToFile(pathToFile, size_in_bytes);
+                    }
+                    catch(Exception e) {
+                        throw e;
+                    }
+                    finally {
+                        boolean isUnlocked = lock.compareAndSet(1,0);
+                        if(!isUnlocked) {
+                            throw new IllegalStateException("Can't unlock locked file");
+                        }
                     }
                     return pathToFile;
                 }

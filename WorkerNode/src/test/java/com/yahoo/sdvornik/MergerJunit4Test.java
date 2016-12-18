@@ -13,54 +13,51 @@ public class MergerJunit4Test extends Assert {
     private final static int SECOND_ARRAY_LENGTH = 256*1024;
     private final static int THIRD_ARRAY_LENGTH = 128*1024;
 
-    private final long[] FIRST_ARRAY = new long[FIRST_ARRAY_LENGTH];
-    private final long[] SECOND_ARRAY = new long[SECOND_ARRAY_LENGTH];
-    private final long[] THIRD_ARRAY = new long[THIRD_ARRAY_LENGTH];
+    private final long[] firstArray = new long[FIRST_ARRAY_LENGTH];
+    private final long[] secondArray = new long[SECOND_ARRAY_LENGTH];
+    private final long[] thirdArray = new long[THIRD_ARRAY_LENGTH];
+    private final long[][] multiArray = new long[][] {firstArray, secondArray, thirdArray};
 
-    private long[] RES_ARRAY;
-
-    private long[][] MULTI_ARRAY = new long[][] {FIRST_ARRAY, SECOND_ARRAY, THIRD_ARRAY};
-
-    private final static ThreadLocalRandom random = ThreadLocalRandom.current();
+    private final ThreadLocalRandom random = ThreadLocalRandom.current();
 
     @Before
-    public void generateLongArray() {
-        for(int i = 0; i < FIRST_ARRAY.length; ++i) {
-            FIRST_ARRAY[i] = random.nextLong();
+    public void generateArraysContent() {
+        for(int i = 0; i < firstArray.length; ++i) {
+            firstArray[i] = random.nextLong();
         }
-        for(int i = 0; i < SECOND_ARRAY.length; ++i) {
-            SECOND_ARRAY[i] = random.nextLong();
+        for(int i = 0; i < secondArray.length; ++i) {
+            secondArray[i] = random.nextLong();
         }
-        for(int i = 0; i < THIRD_ARRAY.length; ++i) {
-            THIRD_ARRAY[i] = random.nextLong();
+        for(int i = 0; i < thirdArray.length; ++i) {
+            thirdArray[i] = random.nextLong();
         }
     }
 
     @Test
     public void testMerger() {
-        new QuickSort(FIRST_ARRAY).sort();
-        new QuickSort(SECOND_ARRAY).sort();
+        new QuickSort(firstArray).sort();
+        new QuickSort(secondArray).sort();
         long start = System.nanoTime();
-        RES_ARRAY = Merger.merge(FIRST_ARRAY, SECOND_ARRAY);
+        long[] resArray = Merger.merge(firstArray, secondArray);
         long end = System.nanoTime();
         System.out.println("Merger : "+(end-start)/1000000+" ms");
-        Assert.assertTrue(checkSortedArray());
+        Assert.assertTrue(checkSortedArray(resArray));
     }
 
     @Test
     public void testMultiMerger() {
-        new QuickSort(THIRD_ARRAY).sort();
+        new QuickSort(thirdArray).sort();
         long start = System.nanoTime();
-        RES_ARRAY = Merger.multiMerge(MULTI_ARRAY);
+        long[] resArray = Merger.multiMerge(multiArray);
         long end = System.nanoTime();
         System.out.println("MultiMerger : "+(end-start)/1000000+" ms");
-        Assert.assertTrue(checkSortedArray());
+        Assert.assertTrue(checkSortedArray(resArray));
     }
 
-    private boolean checkSortedArray() {
+    private boolean checkSortedArray(long[] resArray) {
         boolean res = true;
-        for(int i = 0; i < RES_ARRAY.length-1; ++i) {
-            res &= RES_ARRAY[i] <= RES_ARRAY[i+1];
+        for(int i = 0; i < resArray.length-1; ++i) {
+            res &= resArray[i] <= resArray[i+1];
         }
         return res;
     }

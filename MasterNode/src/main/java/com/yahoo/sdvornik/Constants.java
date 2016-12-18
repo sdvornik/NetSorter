@@ -22,5 +22,7 @@ public final class Constants {
 
     public final static int BUFFER_SIZE_IN_BYTES = BUFFER_SIZE_IN_KBYTES * BYTES_IN_KBYTES;
 
+    public final static int DEFAULT_CHUNK_SIZE_IN_KEYS = 64*1024/8;
+
     public final static String DEFAULT_FILE_NAME = "presorted.txt";
 }

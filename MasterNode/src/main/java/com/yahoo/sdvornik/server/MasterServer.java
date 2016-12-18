@@ -4,10 +4,7 @@ import com.yahoo.sdvornik.Constants;
 import com.yahoo.sdvornik.main.EntryPoint;
 import com.yahoo.sdvornik.master.MasterServerInitializer;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -34,6 +31,9 @@ public class MasterServer {
         final ServerBootstrap masterBootstrap = new ServerBootstrap();
         masterBootstrap.group(masterEventLoopGroup)
                 .channel(NioServerSocketChannel.class)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                //.option(ChannelOption.SO_SNDBUF, 2*Constants.DEFAULT_CHUNK_SIZE_IN_KEYS*Long.BYTES)
                 .localAddress(new InetSocketAddress(Constants.PORT))
                 .childHandler(new MasterServerInitializer());
         ChannelFuture masterFuture = masterBootstrap.bind();
