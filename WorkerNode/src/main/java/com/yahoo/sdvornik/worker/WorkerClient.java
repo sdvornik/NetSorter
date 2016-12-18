@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-
 public class WorkerClient {
 
     private static final Logger log = LoggerFactory.getLogger(WorkerClient.class.getName());
@@ -20,7 +19,6 @@ public class WorkerClient {
     private final InetSocketAddress address;
 
     private final EventLoopGroup workerGroup;
-
 
     public WorkerClient(InetSocketAddress address) {
         this.address = address;

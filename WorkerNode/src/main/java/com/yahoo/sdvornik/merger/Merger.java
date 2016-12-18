@@ -1,10 +1,50 @@
-package com.yahoo.sdvornik.sorter;
+package com.yahoo.sdvornik.merger;
 
-public final class Merger {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    private Merger(){}
+import java.util.concurrent.*;
 
-    public static long[] merge(long[] firstArr, long[] secondArr) {
+public enum Merger {
+
+    INSTANCE;
+
+    private static final Logger log = LoggerFactory.getLogger(Merger.class.getName());
+
+    private final ExecutorService executor = Executors.newFixedThreadPool(1);
+
+    private final LinkedBlockingQueue<LongArrayWrapper> queue = new LinkedBlockingQueue<>();
+
+    private final Runnable mergeTask = new Runnable() {
+
+        @Override
+        public void run() {
+            while(!Thread.currentThread().isInterrupted()) {
+                try {
+                    log.info("Try to get element");
+                    LongArrayWrapper arr = queue.take();
+                    log.info("I got it");
+                }
+                catch(InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+    };
+
+    public boolean putArrayInQueue(LongArrayWrapper arr) {
+        return queue.add(arr);
+    }
+
+    public void init() {
+        executor.execute(mergeTask);
+    }
+
+    public void stop() {
+        executor.shutdownNow();
+    }
+
+    public long[] merge(long[] firstArr, long[] secondArr) {
         long[] resArr = new long[firstArr.length+secondArr.length];
         int firstIndex=0;
         int secondIndex=0;
@@ -24,7 +64,7 @@ public final class Merger {
         return resArr;
     }
 
-    public static long[] multiMerge(long[][] arr) {
+    public long[] multiMerge(long[][] arr) {
         int mergeArrLength = 0;
         for(int numberOfArr = 0; numberOfArr < arr.length; ++numberOfArr) {
             mergeArrLength+= arr[numberOfArr].length;

@@ -1,5 +1,6 @@
 package com.yahoo.sdvornik;
 
+import com.yahoo.sdvornik.merger.Merger;
 import com.yahoo.sdvornik.sorter.*;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,7 +39,7 @@ public class MergerJunit4Test extends Assert {
         new QuickSort(firstArray).sort();
         new QuickSort(secondArray).sort();
         long start = System.nanoTime();
-        long[] resArray = Merger.merge(firstArray, secondArray);
+        long[] resArray = Merger.INSTANCE.merge(firstArray, secondArray);
         long end = System.nanoTime();
         System.out.println("Merger : "+(end-start)/1000000+" ms");
         Assert.assertTrue(checkSortedArray(resArray));
@@ -48,7 +49,7 @@ public class MergerJunit4Test extends Assert {
     public void testMultiMerger() {
         new QuickSort(thirdArray).sort();
         long start = System.nanoTime();
-        long[] resArray = Merger.multiMerge(multiArray);
+        long[] resArray = Merger.INSTANCE.multiMerge(multiArray);
         long end = System.nanoTime();
         System.out.println("MultiMerger : "+(end-start)/1000000+" ms");
         Assert.assertTrue(checkSortedArray(resArray));

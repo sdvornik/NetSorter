@@ -1,5 +1,6 @@
 package com.yahoo.sdvornik.master;
 
+import com.yahoo.sdvornik.Constants;
 import com.yahoo.sdvornik.main.EntryPoint;
 import com.yahoo.sdvornik.server.MasterServer;
 import io.netty.buffer.ByteBuf;
@@ -34,28 +35,27 @@ public class MasterServerHandler extends ChannelInboundHandlerAdapter {
             }
         });
     }
-    //TODO Remove
-/*
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        EntryPoint.removeChannelFromMasterGroup(ctx.channel());
-        String id = ctx.channel().id().toString();
-        log.info("Channel Inactive "+id);
-        EntryPoint.sendMsgToWebSocketGroup("Node with id: " + id + " left the cluster");
-    }
-*/
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ByteBuf in = (ByteBuf) msg;
-        log.info("Server received: " + in.toString(CharsetUtil.UTF_8));
-        //ctx.write(in);
-    }
+        ByteBuf byteBuf = (ByteBuf) msg;
+        int numberOfChunk = byteBuf.readInt();
+        if(numberOfChunk < 0) {
+            log.info("Server received: " + numberOfChunk);
+            switch(numberOfChunk) {
+                case Constants.GET_CONNECTION :
+                    ByteBuf buf = Unpooled.buffer(Long.BYTES+Integer.BYTES);
+                    buf.writeLong(Integer.BYTES);
+                    buf.writeInt(Constants.CONNECTED);
+                    ctx.writeAndFlush(buf);
+                break;
+                default :
+            }
+            byteBuf.release();
+            return;
 
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) {
-        //TODO Remove
-        ctx.writeAndFlush(Unpooled.EMPTY_BUFFER);//.addListener(ChannelFutureListener.CLOSE);
+        }
+        byteBuf.release();
     }
 
     @Override

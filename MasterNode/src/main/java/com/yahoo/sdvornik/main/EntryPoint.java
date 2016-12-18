@@ -68,8 +68,8 @@ public class EntryPoint {
         wsChannelGroup.remove(channel);
     }
 
-    public static fj.data.List<Channel> getMasterChannelList() {
-        return fj.data.List.iterableList(masterChannelGroup);
+    public static ChannelGroup getMasterChannelGroup() {
+        return masterChannelGroup;
     }
 
     public static void stop() {

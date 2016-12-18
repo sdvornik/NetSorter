@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 
 public class MasterServer {
+
     private static final Logger log = LoggerFactory.getLogger(MasterServer.class.getName());
 
     private final EventLoopGroup masterEventLoopGroup;
@@ -33,7 +34,6 @@ public class MasterServer {
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.TCP_NODELAY, true)
                 .option(ChannelOption.SO_KEEPALIVE, true)
-                //.option(ChannelOption.SO_SNDBUF, 2*Constants.DEFAULT_CHUNK_SIZE_IN_KEYS*Long.BYTES)
                 .localAddress(new InetSocketAddress(Constants.PORT))
                 .childHandler(new MasterServerInitializer());
         ChannelFuture masterFuture = masterBootstrap.bind();

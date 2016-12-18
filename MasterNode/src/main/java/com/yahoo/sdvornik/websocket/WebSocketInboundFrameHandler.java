@@ -8,6 +8,8 @@ import com.yahoo.sdvornik.server.WebSocketServer;
 import fj.Try;
 import fj.Unit;
 import fj.data.Validation;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -54,16 +56,6 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
         }
     }
 
-    //TODO remove
-    /*
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        EntryPoint.removeChannelFromWebSocketGroup(ctx.channel());
-        log.info("WebSocket client disconnected. ID: " + ctx.channel().id());
-    }
-*/
-
-
     @Override
     public void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) throws Exception {
 
@@ -109,6 +101,11 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                 break;
 
             case("RUN"):
+                ByteBuf buf = Unpooled.buffer(Long.BYTES+Integer.BYTES);
+                buf.writeLong(Integer.BYTES);
+                buf.writeInt(Constants.START_SORTING);
+                EntryPoint.getMasterChannelGroup().writeAndFlush(buf).sync();
+
                 final Path pathToFile = (content == null) ?
                         Paths.get(System.getProperty("user.home"), Constants.DEFAULT_FILE_NAME) :
                         Paths.get(content);

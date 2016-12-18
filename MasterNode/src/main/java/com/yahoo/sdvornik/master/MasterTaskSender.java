@@ -41,7 +41,7 @@ public class MasterTaskSender {
     public Validation<? extends Exception, Unit> distributeTask() {
         return Try.f(
                 () -> {
-                    fj.data.List<Channel> channelList = EntryPoint.getMasterChannelList();
+                    fj.data.List<Channel> channelList = fj.data.List.iterableList(EntryPoint.getMasterChannelGroup());
                     if (channelList.isEmpty()) {
                         throw new IllegalStateException("Nothing worker node are connected to master node");
                     }
