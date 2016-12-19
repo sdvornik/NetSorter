@@ -1,15 +1,12 @@
 package com.yahoo.sdvornik.server;
 
-import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.main.EntryPoint;
 import com.yahoo.sdvornik.master.MasterServerInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

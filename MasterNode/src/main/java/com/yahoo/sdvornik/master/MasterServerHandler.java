@@ -1,13 +1,11 @@
 package com.yahoo.sdvornik.master;
 
-import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.main.EntryPoint;
-import com.yahoo.sdvornik.server.MasterServer;
+import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,21 +39,40 @@ public class MasterServerHandler extends ChannelInboundHandlerAdapter {
         ByteBuf byteBuf = (ByteBuf) msg;
         int numberOfChunk = byteBuf.readInt();
         if(numberOfChunk < 0) {
-            log.info("Server received: " + numberOfChunk);
-            switch(numberOfChunk) {
-                case Constants.GET_CONNECTION :
-                    ByteBuf buf = Unpooled.buffer(Long.BYTES+Integer.BYTES);
-                    buf.writeLong(Integer.BYTES);
-                    buf.writeInt(Constants.CONNECTED);
-                    ctx.writeAndFlush(buf);
-                break;
+            MasterWorkerMessage elm = MasterWorkerMessage.toEnum(numberOfChunk);
+            switch(elm) {
+                case GET_CONNECTION :
+                    ctx.writeAndFlush(MasterWorkerMessage.CONNECTED.getByteBuf());
+                    break;
+                case JOB_ENDED :
+                    log.info("Job ended message receive");
+                    MasterTask.INSTANCE.saveResponse();
                 default :
             }
             byteBuf.release();
             return;
 
         }
-        byteBuf.release();
+        ctx.executor().execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+
+                        int keyAmount = byteBuf.readableBytes()/Long.BYTES;
+                        long[] sortedArr = new long[keyAmount];
+                        for(int i=0; i<keyAmount; ++i) {
+                            sortedArr[i] = byteBuf.readLong();
+                        }
+                        byteBuf.release();
+                        MasterTask.INSTANCE.putArrayInQueue(
+                                ctx.channel().id().asShortText(),
+                                numberOfChunk,
+                                sortedArr
+                        );
+
+                    }
+                }
+        );
     }
 
     @Override

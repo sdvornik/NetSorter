@@ -1,4 +1,4 @@
-package com.yahoo.sdvornik.broadcastlistener;
+package com.yahoo.sdvornik.sharable;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

@@ -1,6 +1,6 @@
 package com.yahoo.sdvornik.worker;
 
-import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.sharable.Constants;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;

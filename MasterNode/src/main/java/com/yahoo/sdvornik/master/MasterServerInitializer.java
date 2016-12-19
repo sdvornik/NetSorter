@@ -1,9 +1,7 @@
 package com.yahoo.sdvornik.master;
 
-import com.yahoo.sdvornik.Constants;
-import com.yahoo.sdvornik.server.MasterServer;
+import com.yahoo.sdvornik.sharable.Constants;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 

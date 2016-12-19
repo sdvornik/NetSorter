@@ -1,20 +1,17 @@
 package com.yahoo.sdvornik.main;
 
-import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.Utils;
-import com.yahoo.sdvornik.broadcaster.BroadcastMessage;
+import com.yahoo.sdvornik.sharable.BroadcastMessage;
 import com.yahoo.sdvornik.server.MasterServer;
 import com.yahoo.sdvornik.server.BroadcastServer;
 import com.yahoo.sdvornik.server.WebSocketServer;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.group.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

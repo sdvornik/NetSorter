@@ -1,5 +1,6 @@
 package com.yahoo.sdvornik.broadcastlistener;
 
+import com.yahoo.sdvornik.sharable.BroadcastMessage;
 import com.yahoo.sdvornik.worker.WorkerClient;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;

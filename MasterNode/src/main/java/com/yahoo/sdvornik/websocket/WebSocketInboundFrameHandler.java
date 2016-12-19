@@ -1,17 +1,13 @@
 package com.yahoo.sdvornik.websocket;
 
-import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.generator.KeyGenerator;
 import com.yahoo.sdvornik.main.EntryPoint;
-import com.yahoo.sdvornik.master.MasterTaskSender;
-import com.yahoo.sdvornik.server.WebSocketServer;
+import com.yahoo.sdvornik.master.MasterTask;
 import fj.Try;
 import fj.Unit;
 import fj.data.Validation;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import org.json.JSONObject;
@@ -81,13 +77,9 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                                     public void run() {
                                         Validation<? extends Exception, Path> val =
                                                 KeyGenerator.INSTANCE.generateFile(size_in_mbytes);
-                                        String msg = null;
-                                        if(val.isFail()) {
-                                            msg = "Can't generate file:"+val.fail().getMessage();
-                                        }
-                                        else {
-                                            msg = "File successfully created. Path to file: " + val.toOption().toNull();
-                                        }
+                                        String msg = val.isFail() ?
+                                            "Can't generate file:"+val.fail().getMessage() :
+                                            "File successfully created. Path to file: " + val.toOption().toNull();
                                         ctx.writeAndFlush(new TextWebSocketFrame(msg));
                                         log.info(msg);
                                     }
@@ -101,10 +93,6 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                 break;
 
             case("RUN"):
-                ByteBuf buf = Unpooled.buffer(Long.BYTES+Integer.BYTES);
-                buf.writeLong(Integer.BYTES);
-                buf.writeInt(Constants.START_SORTING);
-                EntryPoint.getMasterChannelGroup().writeAndFlush(buf).sync();
 
                 final Path pathToFile = (content == null) ?
                         Paths.get(System.getProperty("user.home"), Constants.DEFAULT_FILE_NAME) :
@@ -119,14 +107,10 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                                     @Override
                                     public void run() {
                                         Validation<? extends Exception, Unit> val =
-                                               new MasterTaskSender(pathToFile).distributeTask();
-                                        String msg = null;
-                                        if(val.isFail()) {
-                                            msg = "Can't distribute task: "+val.fail().getMessage();
-                                        }
-                                        else {
-                                            msg = "Task successfully distributed";
-                                        }
+                                               MasterTask.INSTANCE.distributeTask(pathToFile);
+                                        String msg = val.isFail() ?
+                                            "Can't distribute task: "+val.fail().getMessage() :
+                                            "Task successfully distributed";
                                         ctx.writeAndFlush(new TextWebSocketFrame(msg));
                                         log.info(msg);
                                     }

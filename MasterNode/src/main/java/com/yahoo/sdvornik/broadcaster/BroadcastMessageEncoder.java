@@ -1,6 +1,7 @@
 package com.yahoo.sdvornik.broadcaster;
 
-import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.sharable.Constants;
+import com.yahoo.sdvornik.sharable.BroadcastMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;

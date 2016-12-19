@@ -1,7 +1,7 @@
 package com.yahoo.sdvornik.server;
 
-import com.yahoo.sdvornik.Constants;
-import com.yahoo.sdvornik.broadcaster.BroadcastMessage;
+import com.yahoo.sdvornik.sharable.Constants;
+import com.yahoo.sdvornik.sharable.BroadcastMessage;
 import com.yahoo.sdvornik.broadcaster.BroadcastMessageEncoder;
 import com.yahoo.sdvornik.main.EntryPoint;
 import io.netty.bootstrap.Bootstrap;
@@ -10,7 +10,6 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
 import java.util.concurrent.TimeUnit;
 
 public class BroadcastServer {

@@ -1,4 +1,4 @@
-package com.yahoo.sdvornik;
+package com.yahoo.sdvornik.sharable;
 
 public final class Constants {
 
@@ -31,4 +31,10 @@ public final class Constants {
     public final static int CONNECTED = -2;
 
     public final static int START_SORTING = -3;
+
+    public final static int STOP_TASK_TRANSMISSION = -4;
+
+    public final static int JOB_ENDED = -5;
+
+    public final static int GET_RESULT = -6;
 }

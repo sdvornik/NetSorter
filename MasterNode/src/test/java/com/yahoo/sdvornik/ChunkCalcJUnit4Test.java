@@ -1,19 +1,25 @@
 package com.yahoo.sdvornik;
 
-import com.yahoo.sdvornik.master.MasterTaskSender;
+import com.yahoo.sdvornik.master.MasterTask;
+import com.yahoo.sdvornik.sharable.Constants;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.lang.reflect.Method;
 
 public class ChunkCalcJUnit4Test {
 
     private final static int FILE_SIZE_IN_MB = 1057;
 
     @Test
-    public void testCalcChunkSize() {
+    public void testCalcChunkSize() throws Exception{
         int countOfWorkerNodes = 9;
-        long numberOfKeys = FILE_SIZE_IN_MB*Constants.BYTES_IN_MBYTES/Long.BYTES;
+        long numberOfKeys = FILE_SIZE_IN_MB* Constants.BYTES_IN_MBYTES/Long.BYTES;
 
-        int totalChunkQuantity = MasterTaskSender.calcChunkQuantity(numberOfKeys, countOfWorkerNodes);
+        Method method = MasterTask.class.getDeclaredMethod("calcChunkQuantity", long.class, int.class);
+        method.setAccessible(true);
+        int totalChunkQuantity = (int)method.invoke(MasterTask.INSTANCE, numberOfKeys, countOfWorkerNodes);
+
         System.out.println("totalChunkQuantity: "+totalChunkQuantity);
 
         int totalChunkQuantityToOneNodeModule = totalChunkQuantity%countOfWorkerNodes;

@@ -1,13 +1,13 @@
 package com.yahoo.sdvornik.worker;
 
-import com.yahoo.sdvornik.Constants;
-import com.yahoo.sdvornik.merger.LongArrayWrapper;
+import com.yahoo.sdvornik.main.EntryPoint;
+import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.merger.Merger;
+import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
 import com.yahoo.sdvornik.sorter.QuickSort;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,20 +15,17 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(WorkerClientHandler.class.getName());
 
-    private Channel masterNodeChannel;
+    private int taskCounter = 0;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        ByteBuf buf = Unpooled.buffer(Long.BYTES+Integer.BYTES);
-        buf.writeLong(Integer.BYTES);
-        buf.writeInt(Constants.GET_CONNECTION);
-        ctx.writeAndFlush(buf);
+        ctx.writeAndFlush(MasterWorkerMessage.GET_CONNECTION.getByteBuf());
         ChannelFuture closeFuture = ctx.channel().closeFuture();
 
         closeFuture.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-                masterNodeChannel = null;
+                EntryPoint.setMasterNodeChannel(null);
                 String leftMsg = "Worker node lost connection with master node";
                 log.info(leftMsg);
             }
@@ -40,22 +37,36 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
         final ByteBuf byteBuf = (ByteBuf)msg;
         final int numberOfChunk = byteBuf.readInt();
         if(numberOfChunk < 0) {
-
-            switch(numberOfChunk) {
-                case Constants.CONNECTED:
+            MasterWorkerMessage enumMsg = MasterWorkerMessage.toEnum(numberOfChunk);
+            switch(enumMsg) {
+                case CONNECTED:
                     log.info("Worker node successfully connected to master node");
-                    masterNodeChannel = ctx.channel();
+                    EntryPoint.setMasterNodeChannel(ctx.channel());
                     break;
-                case Constants.START_SORTING:
-                    Merger.INSTANCE.init();
-                    log.info("Worker node prepared for sorting operation");
+                case START_SORTING:
+                    int taskCounter = enumMsg.readIntPayload(byteBuf);
+                    log.info("taskCounter "+taskCounter);
+                    Merger.INSTANCE.init(taskCounter);
+                    log.info("Worker node prepared for sorting operation. Number of chunnks "+taskCounter);
+                    break;
+
+                case STOP_TASK_TRANSMISSION:
+                    log.info("Receive stop task transmission message");
+                    //TODO implement interrupt Merger thread on timeout
+
+                    break;
+                case GET_RESULT:
+                    log.info("Receive get result message");
+                    Merger.INSTANCE.sendResult();
+
+                    break;
 
                 default:
             }
             byteBuf.release();
             return;
         }
-
+        ++taskCounter;
         ctx.executor().execute(
                 new Runnable() {
                     @Override
@@ -63,15 +74,12 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
 
                         int keyAmount = byteBuf.readableBytes()/Long.BYTES;
                         long[] presortedArr = new long[keyAmount];
-                        log.info("Presorted array size: "+keyAmount);
                         for(int i=0; i<keyAmount; ++i) {
                             presortedArr[i] = byteBuf.readLong();
                         }
                         byteBuf.release();
                         new QuickSort(presortedArr).sort();
-                        LongArrayWrapper arr = new LongArrayWrapper(0, presortedArr);
-                        log.info("Successfully sorted chunk number "+numberOfChunk);
-                        Merger.INSTANCE.putArrayInQueue(arr);
+                        Merger.INSTANCE.putArrayInQueue(presortedArr);
                     }
                 }
         );

@@ -6,6 +6,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MergerJunit4Test extends Assert {
@@ -35,19 +36,28 @@ public class MergerJunit4Test extends Assert {
     }
 
     @Test
-    public void testMerger() {
+    public void testMerger() throws Exception {
         new QuickSort(firstArray).sort();
         new QuickSort(secondArray).sort();
+
+        Method method = Merger.class.getDeclaredMethod("merge", long[].class, long[].class);
+        method.setAccessible(true);
+
         long start = System.nanoTime();
-        long[] resArray = Merger.INSTANCE.merge(firstArray, secondArray);
+        long[] resArray = (long[])method.invoke(Merger.INSTANCE, firstArray, secondArray);
+        //long[] resArray = Merger.INSTANCE.merge(firstArray, secondArray);
         long end = System.nanoTime();
         System.out.println("Merger : "+(end-start)/1000000+" ms");
         Assert.assertTrue(checkSortedArray(resArray));
     }
 
     @Test
-    public void testMultiMerger() {
+    public void testMultiMerger() throws Exception {
         new QuickSort(thirdArray).sort();
+
+        Method method = Merger.class.getDeclaredMethod("multiMerge", long[][].class);
+        method.setAccessible(true);
+
         long start = System.nanoTime();
         long[] resArray = Merger.INSTANCE.multiMerge(multiArray);
         long end = System.nanoTime();
