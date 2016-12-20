@@ -14,7 +14,7 @@ public abstract class Sorter {
 
     public abstract long[] sort();
 
-    protected void swapElmInLongArr(int i, int j){
+    protected void swap(int i, int j){
         long temp = longArr[i];
         longArr[i] = longArr[j];
         longArr[j] = temp;

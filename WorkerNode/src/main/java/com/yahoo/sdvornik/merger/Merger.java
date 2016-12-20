@@ -46,14 +46,14 @@ public enum Merger {
                     while(true) {
                         long[] savedArr = storage.get(stage);
                         if(savedArr == null) {
-                            log.info("put array with length "+arr.length);
+                            //log.info("put array with length "+arr.length);
                             storage.put(stage, arr);
                             break;
                         }
                         else {
                             storage.put(stage, null);
                             arr = merge(arr, savedArr);
-                            log.info("successfully merge "+arr.length);
+                            //log.info("successfully merge "+arr.length);
                             ++stage;
                         }
                     }
@@ -66,7 +66,7 @@ public enum Merger {
             currentTaskNumber = 0;
             result = storage.values().stream().filter(arr -> arr!=null).findFirst().get();
             storage.clear();
-            log.info("Merging successfully ended. Resulting array length: "+result.length);
+            log.info("Merging successfully ended. Resulting array length: "+result.length+"; first: "+result[0]+"; last: "+result[result.length-1]);
 
             Channel masterChannel = EntryPoint.getMasterNodeChannel();
             if(masterChannel != null) {
@@ -88,13 +88,6 @@ public enum Merger {
         executor.execute(mergeTask);
     }
 
-    public long[] getResult() {
-        if(result == null) throw new IllegalStateException("Merger not contain result");
-        long[] tmp = result;
-        result = null;
-        return tmp;
-    }
-
     public void sendResult() throws Exception {
         int totalNumberOfChunk = result.length/Constants.RESULT_CHUNK_SIZE_IN_KEYS +
                 ((result.length%Constants.RESULT_CHUNK_SIZE_IN_KEYS == 0) ? 0 : 1);
@@ -108,8 +101,8 @@ public enum Merger {
                     (result.length - numberOfChunk * Constants.RESULT_CHUNK_SIZE_IN_KEYS);
             buffer.putLong(Integer.BYTES+count*Long.BYTES);
             buffer.putInt(numberOfChunk);
-            for(int i = numberOfChunk; i < numberOfChunk + count; ++i) {
-                buffer.putLong(result[i]);
+            for(int i = 0; i < count; ++i) {
+                buffer.putLong(result[numberOfChunk*Constants.RESULT_CHUNK_SIZE_IN_KEYS+i]);
             }
             buffer.flip();
             ByteBuf nettyBuf = Unpooled.wrappedBuffer(buffer);

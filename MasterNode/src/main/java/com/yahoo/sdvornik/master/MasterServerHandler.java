@@ -46,7 +46,7 @@ public class MasterServerHandler extends ChannelInboundHandlerAdapter {
                     break;
                 case JOB_ENDED :
                     log.info("Job ended message receive");
-                    MasterTask.INSTANCE.saveResponse();
+                    MasterTask.INSTANCE.saveResponse(ctx.channel().id().asShortText());
                 default :
             }
             byteBuf.release();

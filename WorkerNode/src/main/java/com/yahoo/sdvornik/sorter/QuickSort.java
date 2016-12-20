@@ -23,10 +23,10 @@ public final class QuickSort extends Sorter {
         int pivotElmIndex = startIndex;
         for (int i = startIndex; i < endIndex; ++i) {
             if (longArr[i] >= pivotElmValue) continue;
-            swapElmInLongArr(pivotElmIndex, i);
+            swap(pivotElmIndex, i);
             ++pivotElmIndex;
         }
-        swapElmInLongArr(pivotElmIndex, endIndex);
+        swap(pivotElmIndex, endIndex);
         return pivotElmIndex;
     }
 

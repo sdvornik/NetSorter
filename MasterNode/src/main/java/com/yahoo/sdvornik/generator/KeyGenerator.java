@@ -22,10 +22,19 @@ public enum KeyGenerator {
     private ThreadLocalRandom random = ThreadLocalRandom.current();
     private ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
     private AtomicInteger lock = new AtomicInteger(0);
+    private long counter;
 
 
-    private byte[] generateKey() {
+    private byte[] generateRandomKey() {
         buffer.putLong(random.nextLong());
+        buffer.flip();
+        byte[] byteArr = buffer.array();
+        buffer.clear();
+        return byteArr;
+    }
+
+    private byte[] generateSequentialKey() {
+        buffer.putLong(++counter);
         buffer.flip();
         byte[] byteArr = buffer.array();
         buffer.clear();
@@ -66,6 +75,7 @@ public enum KeyGenerator {
     }
 
     private void writeToFile(Path pathToFile, long fileSize) throws IOException {
+        counter = 0;
         try (
                 FileChannel writeFileChannel = (FileChannel.open(pathToFile, EnumSet.of(StandardOpenOption.WRITE)))
         ) {
@@ -74,7 +84,7 @@ public enum KeyGenerator {
             long bytesCount=0;
             while(bytesCount < fileSize) {
                 while (bytebuffer.position() < Constants.BUFFER_SIZE_IN_BYTES - Long.BYTES) {
-                    bytebuffer.put(INSTANCE.generateKey());
+                    bytebuffer.put(INSTANCE.generateSequentialKey());
                 }
                 bytesCount += bytebuffer.position();
                 bytebuffer.flip();

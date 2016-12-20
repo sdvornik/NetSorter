@@ -34,6 +34,7 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+
         final ByteBuf byteBuf = (ByteBuf)msg;
         final int numberOfChunk = byteBuf.readInt();
         if(numberOfChunk < 0) {
@@ -73,13 +74,14 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
                     public void run() {
 
                         int keyAmount = byteBuf.readableBytes()/Long.BYTES;
+
                         long[] presortedArr = new long[keyAmount];
                         for(int i=0; i<keyAmount; ++i) {
                             presortedArr[i] = byteBuf.readLong();
                         }
-                        byteBuf.release();
-                        new QuickSort(presortedArr).sort();
+                        presortedArr = new QuickSort(presortedArr).sort();
                         Merger.INSTANCE.putArrayInQueue(presortedArr);
+                        byteBuf.release();
                     }
                 }
         );

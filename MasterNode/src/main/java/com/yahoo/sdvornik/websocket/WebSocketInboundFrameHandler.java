@@ -106,13 +106,14 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
 
                                     @Override
                                     public void run() {
-                                        Validation<? extends Exception, Unit> val =
-                                               MasterTask.INSTANCE.distributeTask(pathToFile);
-                                        String msg = val.isFail() ?
-                                            "Can't distribute task: "+val.fail().getMessage() :
-                                            "Task successfully distributed";
-                                        ctx.writeAndFlush(new TextWebSocketFrame(msg));
-                                        log.info(msg);
+                                        try {
+                                            MasterTask.INSTANCE.runTask(pathToFile, ctx.channel());
+                                        }
+                                        catch(Exception e) {
+                                            String msg = "Can't distribute task: "+e.getMessage();
+                                            ctx.writeAndFlush(new TextWebSocketFrame(msg));
+                                            log.info(msg);
+                                        }
                                     }
                                 }
                         );
