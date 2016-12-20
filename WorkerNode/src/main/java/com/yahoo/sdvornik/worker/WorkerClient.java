@@ -12,20 +12,26 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
+/**
+ * Instance of this class holds connection to master node.
+ */
 public class WorkerClient {
 
     private static final Logger log = LoggerFactory.getLogger(WorkerClient.class.getName());
 
     private final InetSocketAddress address;
 
-    private final EventLoopGroup workerGroup;
+    private final EventLoopGroup workerGroup = new NioEventLoopGroup();
 
+    /**
+     * Ctor.
+     * @param address
+     */
     public WorkerClient(InetSocketAddress address) {
         this.address = address;
-        this.workerGroup = new NioEventLoopGroup();
     }
 
-    public void init() {
+    public boolean blockingInit() {
 
         Bootstrap workerBootstrap = new Bootstrap();
 
@@ -51,20 +57,15 @@ public class WorkerClient {
 
                     }
                 });
-        ChannelFuture workerFuture = workerBootstrap.connect();
-
-        workerFuture.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                if(!future.isSuccess()) {
-                    log.info("Can't run Worker client");
-                    return;
-                }
-
-                log.info("Successfully init Worker client");
-            }
-        });
-
+        try {
+            workerBootstrap.connect().sync();
+            log.info("Successfully start Worker client");
+            return true;
+        }
+        catch(InterruptedException e) {
+            log.info("Can't start Worker client");
+            return false;
+        }
     }
 
     public void stop() {

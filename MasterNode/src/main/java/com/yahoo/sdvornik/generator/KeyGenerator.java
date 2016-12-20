@@ -15,6 +15,10 @@ import java.util.EnumSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Test file generator. Has two implementations for
+ * key generator - random and sequential.
+ */
 public enum KeyGenerator {
 
     INSTANCE;
@@ -44,7 +48,7 @@ public enum KeyGenerator {
     public Validation<? extends Exception, Path> generateFile(Integer size_in_mbytes) {
 
         final Path pathToFile = Paths.get(System.getProperty("user.home"), Constants.DEFAULT_FILE_NAME);
-        final int size_in_bytes = ((size_in_mbytes!=null && size_in_mbytes < Constants.MAX_FILE_SIZE_IN_MBYTES) ?
+        final long size_in_bytes = ((size_in_mbytes!=null && size_in_mbytes < Constants.MAX_FILE_SIZE_IN_MBYTES) ?
                 size_in_mbytes : Constants.MAX_FILE_SIZE_IN_MBYTES)*Constants.BYTES_IN_MBYTES;
 
 

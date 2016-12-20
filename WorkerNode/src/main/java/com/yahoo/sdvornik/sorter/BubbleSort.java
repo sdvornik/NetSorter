@@ -1,8 +1,13 @@
 package com.yahoo.sdvornik.sorter;
 
+/**
+ * Implementation of BubbleSort algorithm.
+ */
 public final class BubbleSort extends Sorter {
-
-
+    /**
+     * Ctor.
+     * @param longArr
+     */
     public BubbleSort(long[] longArr) {
         super(longArr);
     }

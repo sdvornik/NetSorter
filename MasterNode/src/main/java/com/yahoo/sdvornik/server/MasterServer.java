@@ -1,7 +1,7 @@
 package com.yahoo.sdvornik.server;
 
 import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.main.EntryPoint;
+import com.yahoo.sdvornik.main.Master;
 import com.yahoo.sdvornik.master.MasterServerInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -12,6 +12,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
+/**
+ * Master server
+ */
 public class MasterServer {
 
     private static final Logger log = LoggerFactory.getLogger(MasterServer.class.getName());
@@ -20,6 +23,11 @@ public class MasterServer {
 
     private final ChannelGroup masterChannelGroup;
 
+    /**
+     * Ctor.
+     * @param masterEventLoopGroup
+     * @param masterChannelGroup
+     */
     public MasterServer(EventLoopGroup masterEventLoopGroup, ChannelGroup masterChannelGroup) {
         this.masterEventLoopGroup = masterEventLoopGroup;
         this.masterChannelGroup = masterChannelGroup;
@@ -40,7 +48,7 @@ public class MasterServer {
             public void operationComplete(ChannelFuture future) throws Exception {
                 if (!future.isSuccess()) {
                     log.error("Can't run Master server", future.cause());
-                    EntryPoint.stop();
+                    Master.INSTANCE.stop();
                     return;
                 }
 

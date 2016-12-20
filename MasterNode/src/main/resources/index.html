@@ -31,7 +31,7 @@
             font-size: large;
         }
         .labelLine {
-            margin: 5px 0px;
+            margin: 5px 0;
             display: block;
         }
         .buttonClass {
@@ -50,19 +50,22 @@
 
 
     <label for="genTestFile" class="labelLine">
-        Generate Test file
+        Generate test file size in MB:
+        <input type="text" id="sizeField" class="inputField" style="width: 100px;"/>
         <input type="button" id="genTestFile" value="Generate" class="buttonClass" />
 
     </label>
+
+    <label for="runTask" class="labelLine">
+        Sort File
+        <input type="text" id="pathToFileField" class="inputField" />
+        <input type="button" id="runTask" value="Run" class="buttonClass" />
+    </label>
+
     <label for="shutdown" class="labelLine">
         Shutdown server
         <input type="button" id="shutdown" value="Shutdown" class="buttonClass" />
 
-    </label>
-    <label for="runTask" class="labelLine">
-        Sort File
-        <input type="text" id="textField" class="inputField" />
-        <input type="button" id="runTask" value="Run" class="buttonClass" />
     </label>
 </div>
 <div class="titleClass" style="font-size: x-large;">Log Window</div>
@@ -77,11 +80,13 @@
             generateButton = doc.getElementById("genTestFile"),
             shutdownButton = doc.getElementById("shutdown"),
             runButton = doc.getElementById("runTask"),
-            pathToFileInput = doc.getElementById("textField");
+            pathToFileInput = doc.getElementById("pathToFileField"),
+            sizeInput = doc.getElementById("sizeField");
 
         generateButton.onclick = function() {
             logWindow.innerHTML+="Try to generate file on master node<br>";
-            var msg = JSON.stringify({type : "GENERATE", content: "null"});
+            var fileSize = sizeInput.value.trim();
+            var msg = JSON.stringify({type : "GENERATE", content: fileSize});
             socket.send(msg);
         };
 

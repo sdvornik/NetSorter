@@ -2,8 +2,14 @@ package com.yahoo.sdvornik.sorter;
 
 import java.util.Arrays;
 
+/**
+ * Implementation of non recursive MergingSort algorithm.
+ */
 public final class MergingSortNoRecursive extends Sorter {
-
+    /**
+     * Ctor.
+     * @param longArr
+     */
     public MergingSortNoRecursive(long[] longArr) {
         super(longArr);
     }

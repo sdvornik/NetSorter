@@ -1,7 +1,14 @@
 package com.yahoo.sdvornik.sorter;
 
+/**
+ * Implementation of QuickSort algorithm.
+ */
 public final class QuickSort extends Sorter {
 
+    /**
+     * Ctor.
+     * @param longArr
+     */
     public QuickSort(long[] longArr) {
         super(longArr);
     }

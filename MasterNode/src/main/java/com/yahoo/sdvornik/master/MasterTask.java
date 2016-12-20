@@ -1,11 +1,8 @@
 package com.yahoo.sdvornik.master;
 
 import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.main.EntryPoint;
+import com.yahoo.sdvornik.main.Master;
 import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
-import fj.Try;
-import fj.Unit;
-import fj.data.Validation;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -18,7 +15,6 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,7 +43,7 @@ public enum MasterTask {
     public void runTask(Path pathToFile, Channel wsClientChannel) throws Exception {
         this.pathToFile = pathToFile;
         this.wsClientChannel = wsClientChannel;
-        this.channelList = fj.data.List.iterableList(EntryPoint.getMasterChannelGroup());
+        this.channelList = fj.data.List.iterableList(Master.INSTANCE.getMasterChannelGroup());
         if (channelList.isEmpty()) {
             throw new IllegalStateException("Nothing worker node are connected to master node");
         }
@@ -86,10 +82,9 @@ public enum MasterTask {
             log.info("Total number of chunks for one node " + chunkQuantityToOneNode);
 
             MasterWorkerMessage enumMsg = MasterWorkerMessage.START_SORTING;
-            enumMsg.setIntPayload(chunkQuantityToOneNode);
-
+            ByteBuf buf = enumMsg.getByteBuf(chunkQuantityToOneNode);
             for(Channel channel : channelList) {
-                  channel.writeAndFlush(enumMsg.getByteBuf()).sync();
+                  channel.writeAndFlush(buf).sync();
             }
 
             ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES+Integer.BYTES+chunkSize*Long.BYTES);
@@ -184,7 +179,6 @@ public enum MasterTask {
                     id[i] = dequeEntrySet.getKey();
                 }
 
-
                 try {
                     multiMergeAndSave(id,  maxGeneration, totalKeysInOneGeneration);
                 }
@@ -248,8 +242,8 @@ public enum MasterTask {
                     }
                 }
             }
-            System.out.println("First: "+mergeArr[0]+"; Last: "+mergeArr[mergeArr.length-1]+"; Length: "+mergeArr.length+"; Generation: "+generation);
-
+            //System.out.println("First: "+mergeArr[0]+"; Last: "+mergeArr[mergeArr.length-1]+"; Length: "+mergeArr.length+"; Generation: "+generation);
+            //TODO Save file
             ++generation;
         }
 

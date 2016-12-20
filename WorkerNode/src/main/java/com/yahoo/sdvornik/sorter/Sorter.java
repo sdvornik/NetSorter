@@ -4,6 +4,9 @@ import io.netty.buffer.ByteBuf;
 
 import java.util.Arrays;
 
+/**
+ * Abstract class for sorting algorithm implementation.
+ */
 public abstract class Sorter {
 
     protected final long[] longArr;

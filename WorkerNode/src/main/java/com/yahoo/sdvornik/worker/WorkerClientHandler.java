@@ -1,12 +1,11 @@
 package com.yahoo.sdvornik.worker;
 
-import com.yahoo.sdvornik.main.EntryPoint;
-import com.yahoo.sdvornik.sharable.Constants;
+import com.yahoo.sdvornik.broadcastlistener.BroadcastListener;
+import com.yahoo.sdvornik.main.Worker;
 import com.yahoo.sdvornik.merger.Merger;
 import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
 import com.yahoo.sdvornik.sorter.QuickSort;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,16 +19,17 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         ctx.writeAndFlush(MasterWorkerMessage.GET_CONNECTION.getByteBuf());
-        ChannelFuture closeFuture = ctx.channel().closeFuture();
 
-        closeFuture.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                EntryPoint.setMasterNodeChannel(null);
-                String leftMsg = "Worker node lost connection with master node";
-                log.info(leftMsg);
-            }
-        });
+        ctx.channel().closeFuture().addListener(
+                new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        Worker.INSTANCE.setMasterNodeChannel(null);
+                        log.info("Worker node lost connection with master node. Start broadcast listener.");
+                        new BroadcastListener().blockingInit();
+                    }
+                }
+        );
     }
 
     @Override
@@ -42,7 +42,7 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
             switch(enumMsg) {
                 case CONNECTED:
                     log.info("Worker node successfully connected to master node");
-                    EntryPoint.setMasterNodeChannel(ctx.channel());
+                    Worker.INSTANCE.setMasterNodeChannel(ctx.channel());
                     break;
                 case START_SORTING:
                     int taskCounter = enumMsg.readIntPayload(byteBuf);

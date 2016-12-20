@@ -1,5 +1,6 @@
 package com.yahoo.sdvornik.broadcastlistener;
 
+import com.yahoo.sdvornik.main.Worker;
 import com.yahoo.sdvornik.sharable.Constants;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -10,17 +11,21 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
+/**
+ * Instance of this class listens UDP broadcasting
+ * to receive IP-address and port from Master node
+ */
 public class BroadcastListener {
 
     private static final Logger log = LoggerFactory.getLogger(BroadcastListener.class.getName());
 
-    private final EventLoopGroup broadcastListenerGroup;
+    private final EventLoopGroup broadcastListenerGroup = new NioEventLoopGroup();
 
-    public BroadcastListener() {
-        broadcastListenerGroup = new NioEventLoopGroup();
-    }
-
-    public void init() {
+    /**
+     * Blocking initialization of instance
+     * @return
+     */
+    public boolean blockingInit() {
         final Bootstrap bootstrap = new Bootstrap();
         final InetSocketAddress address = new InetSocketAddress(Constants.BROADCAST_PORT);
         bootstrap.group(broadcastListenerGroup)
@@ -36,28 +41,16 @@ public class BroadcastListener {
                     }
                 } )
                 .localAddress(address);
-
-        ChannelFuture broadcastFuture = bootstrap.bind();
-
-        broadcastFuture.addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                if(future.isSuccess()){
-                    log.info("BroadcastListener successfully started");
-                };
-
-            }
-        });
-/*
         try {
-            Channel channel = bootstrap.bind().sync().channel();
-            channel.closeFuture().sync();
+            bootstrap.bind().sync();
+            log.info("BroadcastListener successfully started");
+            Worker.INSTANCE.setBroadcastListener(this);
         }
         catch(InterruptedException e) {
-
+            log.error("Can't start BroadcastListener");
+            return false;
         }
-*/
-
+        return true;
     }
 
     public void stop() {

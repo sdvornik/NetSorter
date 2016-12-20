@@ -8,6 +8,9 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+/**
+ * Immutable class which represents master node connection data.
+ */
 public final class BroadcastMessage {
 
     private static final Logger log = LoggerFactory.getLogger(BroadcastMessage.class.getName());
@@ -32,17 +35,21 @@ public final class BroadcastMessage {
 
     private final int serverPort;
 
+    /**
+     * Ctor.
+     * @param serverAddress
+     * @param serverPort
+     */
     public BroadcastMessage(InetAddress serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
     }
 
-    public byte[] getByteArray() {
+    public ByteBuf getByteBuf() {
         ByteBuf buffer = Unpooled.buffer(2*Integer.BYTES);
         buffer.writeBytes(serverAddress.getAddress());
         buffer.writeInt(serverPort);
-        byte[] byteArr = buffer.array();
-        return byteArr;
+        return buffer;
     }
 
     public InetAddress getServerAddress() {
@@ -50,8 +57,7 @@ public final class BroadcastMessage {
     }
 
     public int getServerPort() {
-       return serverPort;
+        return serverPort;
     }
 
 }
-

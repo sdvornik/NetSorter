@@ -5,6 +5,10 @@ import io.netty.buffer.ByteBuf;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+/**
+ * Implementation of QuickSort algorithm for long keys in byte array.
+ * For testing purposes.
+ */
 public class QuickSortByteArr {
 
     private final byte[] byteArr;

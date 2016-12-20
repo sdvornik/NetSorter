@@ -1,7 +1,7 @@
 package com.yahoo.sdvornik.server;
 
 import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.main.EntryPoint;
+import com.yahoo.sdvornik.main.Master;
 import com.yahoo.sdvornik.websocket.WebSocketServerInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -16,7 +16,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-
+/**
+ * WebSocket server
+ */
 public class WebSocketServer {
     private static final Logger log = LoggerFactory.getLogger(WebSocketServer.class.getName());
 
@@ -24,6 +26,11 @@ public class WebSocketServer {
 
     private ChannelGroup wsChannelGroup;
 
+    /**
+     * Ctor.
+     * @param wsEventLoopGroup
+     * @param wsChannelGroup
+     */
     public WebSocketServer(EventLoopGroup wsEventLoopGroup, ChannelGroup wsChannelGroup) {
         this.wsEventLoopGroup = wsEventLoopGroup;
         this.wsChannelGroup = wsChannelGroup;
@@ -42,21 +49,11 @@ public class WebSocketServer {
             public void operationComplete(ChannelFuture future) throws Exception {
                 if(!future.isSuccess()) {
                     log.error("Can't run WebSocket server", future.cause());
-                    EntryPoint.stop();
+                    Master.INSTANCE.stop();
                     return;
                 }
                 log.info("Successfully init WebSocket server");
             }
         });
     }
-
-    public void addChannelToWebSocketGroup(Channel channel) {
-        wsChannelGroup.add(channel);
-    }
-
-    public void sendMessageToWebSocketGroup(String msg) {
-        log.info("Try to send message into WebSocket");
-        wsChannelGroup.writeAndFlush(new TextWebSocketFrame(msg));
-    }
-
 }

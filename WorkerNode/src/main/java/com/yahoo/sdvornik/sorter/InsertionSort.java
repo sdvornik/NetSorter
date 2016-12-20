@@ -1,8 +1,14 @@
 package com.yahoo.sdvornik.sorter;
 
+/**
+ * Implementation of InsertionSort algorithm.
+ */
 public final class InsertionSort extends Sorter {
 
-
+    /**
+     * Ctor.
+     * @param longArr
+     */
     public InsertionSort(long[] longArr) {
         super(longArr);
     }

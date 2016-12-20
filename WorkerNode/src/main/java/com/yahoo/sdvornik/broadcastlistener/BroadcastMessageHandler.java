@@ -1,5 +1,6 @@
 package com.yahoo.sdvornik.broadcastlistener;
 
+import com.yahoo.sdvornik.main.Worker;
 import com.yahoo.sdvornik.sharable.BroadcastMessage;
 import com.yahoo.sdvornik.worker.WorkerClient;
 import io.netty.channel.ChannelFuture;
@@ -15,28 +16,39 @@ public class BroadcastMessageHandler extends SimpleChannelInboundHandler<Broadca
 
     private static final Logger log = LoggerFactory.getLogger(BroadcastMessageHandler.class.getName());
 
+
     @Override
     public void channelRead0(ChannelHandlerContext ctx, BroadcastMessage msg) throws Exception {
-        log.info("Received message. Address: "+msg.getServerAddress().getHostAddress()+"; Port: "+msg.getServerPort());
+        log.info(
+                "Received message. Address: "+msg.getServerAddress().getHostAddress()+
+                        "; Port: "+msg.getServerPort()
+        );
 
-        ChannelFuture closeConnectionFuture = ctx.close();
-
-        closeConnectionFuture.addListener(new ChannelFutureListener() {
+        ctx.close().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 if(!future.isSuccess()) {
                     log.error("Can't close Broadcast listener", future.cause());
                     return;
                 }
-
                 log.info("Successfully close Broadcast listener");
-                new WorkerClient(new InetSocketAddress(msg.getServerAddress(), msg.getServerPort())).init();
             }
         });
 
+        final InetSocketAddress address = new InetSocketAddress(msg.getServerAddress(), msg.getServerPort());
+        ctx.executor().execute(
+                new Runnable(){
 
+                    @Override
+                    public void run() {
+                        if(new WorkerClient(address).blockingInit()) {
+                            Worker.INSTANCE.getBroadcastListener().stop();
+                            Worker.INSTANCE.setBroadcastListener(null);
+                        };
+                    }
+                }
+        );
     }
-
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable e) throws Exception {

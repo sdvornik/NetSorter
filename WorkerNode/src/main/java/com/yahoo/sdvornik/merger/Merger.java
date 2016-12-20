@@ -1,11 +1,12 @@
 package com.yahoo.sdvornik.merger;
 
-import com.yahoo.sdvornik.main.EntryPoint;
+import com.yahoo.sdvornik.main.Worker;
 import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +14,12 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
+/**
+ * Merging sorted long array implementation. For better perfomance
+ * all arrays length must be almost equal. This instance holds merging
+ * result until master node request it.
+ */
 public enum Merger {
 
     INSTANCE;
@@ -27,9 +32,7 @@ public enum Merger {
 
     private final Map<Integer, long[]> storage = new HashMap<>();
 
-    private int currentTaskNumber = 0;
-
-    private int maxTaskNumber = -1;
+    private int maxTaskNumber;
 
     private long[] result;
 
@@ -37,6 +40,7 @@ public enum Merger {
 
         @Override
         public void run() {
+            int currentTaskNumber = 0;
             while(currentTaskNumber < maxTaskNumber) {
                 try {
                     long[] arr= queue.take();
@@ -46,14 +50,12 @@ public enum Merger {
                     while(true) {
                         long[] savedArr = storage.get(stage);
                         if(savedArr == null) {
-                            //log.info("put array with length "+arr.length);
                             storage.put(stage, arr);
                             break;
                         }
                         else {
                             storage.put(stage, null);
                             arr = merge(arr, savedArr);
-                            //log.info("successfully merge "+arr.length);
                             ++stage;
                         }
                     }
@@ -62,13 +64,13 @@ public enum Merger {
                     Thread.currentThread().interrupt();
                 }
             }
-            maxTaskNumber = -1;
-            currentTaskNumber = 0;
             result = storage.values().stream().filter(arr -> arr!=null).findFirst().get();
             storage.clear();
+            queue.clear();
+            maxTaskNumber = 0;
             log.info("Merging successfully ended. Resulting array length: "+result.length+"; first: "+result[0]+"; last: "+result[result.length-1]);
 
-            Channel masterChannel = EntryPoint.getMasterNodeChannel();
+            Channel masterChannel = Worker.INSTANCE.getMasterNodeChannel();
             if(masterChannel != null) {
                 masterChannel.writeAndFlush(MasterWorkerMessage.JOB_ENDED.getByteBuf());
             }
@@ -78,16 +80,26 @@ public enum Merger {
         }
     };
 
+    /**
+     * Unblocking add array in {@link LinkedBlockingQueue}
+     * for further processing.
+     * @param arr
+     * @return
+     */
     public boolean putArrayInQueue(long[] arr) {
         return queue.add(arr);
     }
 
     public void init(int maxTaskNumber) {
         this.maxTaskNumber = maxTaskNumber;
-        this.currentTaskNumber = 0;
         executor.execute(mergeTask);
     }
 
+    /**
+     * Send sorted array to master node.
+     * Size of chunk is determined by {@code Constants.RESULT_CHUNK_SIZE_IN_KEYS}
+     * @throws Exception
+     */
     public void sendResult() throws Exception {
         int totalNumberOfChunk = result.length/Constants.RESULT_CHUNK_SIZE_IN_KEYS +
                 ((result.length%Constants.RESULT_CHUNK_SIZE_IN_KEYS == 0) ? 0 : 1);
@@ -106,7 +118,7 @@ public enum Merger {
             }
             buffer.flip();
             ByteBuf nettyBuf = Unpooled.wrappedBuffer(buffer);
-            EntryPoint.getMasterNodeChannel().writeAndFlush(nettyBuf);
+            Worker.INSTANCE.getMasterNodeChannel().writeAndFlush(nettyBuf);
             buffer.clear();
         }
         log.info("Successfully send result");
@@ -135,32 +147,5 @@ public enum Merger {
             }
         }
         return resArr;
-    }
-
-    //TODO Remove
-    public long[] multiMerge(long[][] arr) {
-        int mergeArrLength = 0;
-        for(int numberOfArr = 0; numberOfArr < arr.length; ++numberOfArr) {
-            mergeArrLength+= arr[numberOfArr].length;
-        }
-        long[] mergeArr = new long[mergeArrLength];
-        int[] curIndex = new int[arr.length];
-        long curMinValue = Long.MAX_VALUE;
-        int curNumberOfArrWithMinValue = -1;
-        int firstIndex=0;
-        int secondIndex=0;
-
-        for (int i = 0; i < mergeArrLength; ++i) {
-            int indexOfArrWithMinValue = 0;
-            for(int k = 0; k < arr.length; ++k) {
-                if(curIndex[k] < arr[k].length && arr[k][curIndex[k]] < curMinValue) {
-                    curMinValue = arr[k][curIndex[k]];
-                    curNumberOfArrWithMinValue = k;
-                }
-            }
-            ++curIndex[curNumberOfArrWithMinValue];
-            mergeArr[i] = curMinValue;
-        }
-        return mergeArr;
     }
 }

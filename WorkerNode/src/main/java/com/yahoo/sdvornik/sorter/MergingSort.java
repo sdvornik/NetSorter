@@ -2,8 +2,14 @@ package com.yahoo.sdvornik.sorter;
 
 import java.util.Arrays;
 
+/**
+ * Implementation of MergingSort algorithm.
+ */
 public final class MergingSort extends Sorter {
-
+    /**
+     * Ctor.
+     * @param longArr
+     */
     public MergingSort(long[] longArr) {
         super(longArr);
     }

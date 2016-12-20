@@ -2,10 +2,9 @@ package com.yahoo.sdvornik.websocket;
 
 import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.generator.KeyGenerator;
-import com.yahoo.sdvornik.main.EntryPoint;
+import com.yahoo.sdvornik.main.Master;
 import com.yahoo.sdvornik.master.MasterTask;
 import fj.Try;
-import fj.Unit;
 import fj.data.Validation;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -32,7 +31,7 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
         if (evt.getClass() == WebSocketServerProtocolHandler.HandshakeComplete.class) {
             ctx.pipeline().remove(HttpRequestHandler.class);
             final Channel wsChannel = ctx.channel();
-            EntryPoint.addChannelToWebSocketGroup(ctx.channel());
+            Master.INSTANCE.addChannelToWebSocketGroup(ctx.channel());
 
             ctx.writeAndFlush(new TextWebSocketFrame("Successfully connected to Master node"));
             log.info("WebSocket client connected. ID: " + ctx.channel().id().asShortText());
@@ -43,7 +42,7 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     log.info("WebSocket client disconnected. ID: " + ctx.channel().id().asShortText());
-                    EntryPoint.removeChannelFromWebSocketGroup(ctx.channel());
+                    Master.INSTANCE.removeChannelFromWebSocketGroup(ctx.channel());
                 }
             });
         }
@@ -66,7 +65,7 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                 final Integer size_in_mbytes = Try.f(
                         (String str) -> Integer.valueOf(str)
                 ).f(content).toOption().toNull();
-
+                log.info("Size: "+size_in_mbytes);
                 ctx.executor().execute(new Runnable(){
                     @Override
                     public void run() {
@@ -79,7 +78,8 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                                                 KeyGenerator.INSTANCE.generateFile(size_in_mbytes);
                                         String msg = val.isFail() ?
                                             "Can't generate file:"+val.fail().getMessage() :
-                                            "File successfully created. Path to file: " + val.toOption().toNull();
+                                            "File successfully created. Path to file: " + val.toOption().toNull() +
+                                                ". Size: "+size_in_mbytes+" MB.";
                                         ctx.writeAndFlush(new TextWebSocketFrame(msg));
                                         log.info(msg);
                                     }
@@ -89,7 +89,7 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                 });
                 break;
             case("SHUTDOWN"):
-                EntryPoint.stop();
+                Master.INSTANCE.stop();
                 break;
 
             case("RUN"):

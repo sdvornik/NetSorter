@@ -25,11 +25,6 @@ public class BroadcastMessageEncoder extends MessageToMessageEncoder<BroadcastMe
             BroadcastMessage broadcastMessage,
             List<Object> out
     ) throws Exception {
-
-        byte[] byteArr = broadcastMessage.getByteArray();
-        ByteBuf buf = ctx.alloc().buffer(byteArr.length);
-
-        buf.writeBytes(byteArr);
-        out.add(new DatagramPacket(buf, broadcastAddress));
+        out.add(new DatagramPacket(broadcastMessage.getByteBuf(), broadcastAddress));
     }
 }

@@ -7,7 +7,7 @@ public final class Constants {
 
     public final static int BYTES_IN_KBYTES = 1024;
 
-    public final static int BYTES_IN_MBYTES = 1048576;
+    public final static long BYTES_IN_MBYTES = 1048576;
 
     public final static int BROADCAST_PORT = 8394;
 
@@ -19,7 +19,7 @@ public final class Constants {
 
     private final static int BUFFER_SIZE_IN_KBYTES = 128;
 
-    public final static int MAX_FILE_SIZE_IN_MBYTES = 32;
+    public final static int MAX_FILE_SIZE_IN_MBYTES = 512;
 
     public final static int BUFFER_SIZE_IN_BYTES = BUFFER_SIZE_IN_KBYTES * BYTES_IN_KBYTES;
 

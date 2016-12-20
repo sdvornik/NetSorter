@@ -14,16 +14,10 @@ public enum MasterWorkerMessage {
 
     private int value;
     private boolean isIntPayload;
-    private ByteBuf buffer;
 
     MasterWorkerMessage(int value, boolean isIntPayload) {
         this.value = value;
         this.isIntPayload = isIntPayload;
-        this.buffer = Unpooled.buffer(Long.BYTES+Integer.BYTES + (this.isIntPayload ? Integer.BYTES : 0));
-        if(!this.isIntPayload) {
-            this.buffer.writeLong(Integer.BYTES + (this.isIntPayload ? Integer.BYTES : 0));
-            this.buffer.writeInt(value);
-        }
     }
 
     public int getValue() {
@@ -31,15 +25,24 @@ public enum MasterWorkerMessage {
     }
 
     public ByteBuf getByteBuf() {
-        return buffer;
+        if(!this.isIntPayload) {
+            ByteBuf buffer = Unpooled.buffer(Long.BYTES+Integer.BYTES);
+            buffer.writeLong(Integer.BYTES);
+            buffer.writeInt(value);
+            return buffer;
+        }
+        else {
+            throw new UnsupportedOperationException();
+        }
     }
 
-    public void setIntPayload(int payload) {
+    public ByteBuf getByteBuf(int payload) {
         if(this.isIntPayload) {
-            this.buffer.clear();
-            this.buffer.writeLong(Integer.BYTES + Integer.BYTES);
-            this.buffer.writeInt(value);
-            this.buffer.writeInt(payload);
+            ByteBuf buffer = Unpooled.buffer(Long.BYTES+2*Integer.BYTES);
+            buffer.writeLong(2*Integer.BYTES);
+            buffer.writeInt(value);
+            buffer.writeInt(payload);
+            return buffer;
         }
         else {
             throw new UnsupportedOperationException();
