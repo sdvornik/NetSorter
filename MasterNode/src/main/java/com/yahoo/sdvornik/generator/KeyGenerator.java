@@ -45,6 +45,11 @@ public enum KeyGenerator {
         return byteArr;
     }
 
+    /**
+     *  Generate file
+     * @param size_in_mbytes
+     * @return
+     */
     public Validation<? extends Exception, Path> generateFile(Integer size_in_mbytes) {
 
         final Path pathToFile = Paths.get(System.getProperty("user.home"), Constants.DEFAULT_FILE_NAME);

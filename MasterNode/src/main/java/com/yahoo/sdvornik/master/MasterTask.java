@@ -1,8 +1,10 @@
 package com.yahoo.sdvornik.master;
 
+import com.yahoo.sdvornik.merger.Merger;
 import com.yahoo.sdvornik.sharable.Constants;
 import com.yahoo.sdvornik.main.Master;
 import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
+import fj.Unit;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -28,17 +30,64 @@ public enum MasterTask {
     INSTANCE;
 
     private final Logger log = LoggerFactory.getLogger(MasterTask.class.getName());
+
     private AtomicInteger lock = new AtomicInteger(0);
     private Path pathToFile;
     private Channel wsClientChannel;
-    private fj.data.List<Channel> channelList = fj.data.List.nil();
 
+    private fj.data.List<Channel> channelList = fj.data.List.nil();
+    private fj.data.List<Boolean> responseList = fj.data.List.nil();
+    private Merger mergerInstance;
 
     private long numberOfKeys;
 
-    private fj.data.List<Boolean> responseList = fj.data.List.nil();
-    private final ExecutorService executor = Executors.newFixedThreadPool(1);
-    private Map<String, LinkedBlockingDeque<long[]>> dequeMap = new HashMap<>();
+    fj.F0<Unit> before = new fj.F0<Unit>() {
+
+        @Override
+        public Unit f() {
+            String message = "Start to merge worker nodes results.";
+            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
+            log.info(message);
+            return Unit.unit();
+        }
+    };
+
+    fj.F0<Unit> onSuccess = new fj.F0<Unit>() {
+
+        @Override
+        public Unit f() {
+            channelList = fj.data.List.nil();
+            responseList = fj.data.List.nil();
+            mergerInstance = null;
+
+            boolean isUnlocked = lock.compareAndSet(1,0);
+            if(!isUnlocked) {
+                throw new RuntimeException();
+            }
+            String message = "Successfully merged worker nodes results.";
+            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
+            log.info(message);
+            return Unit.unit();
+        }
+    };
+
+    fj.F<String,Unit> onError = new fj.F<String,Unit>() {
+
+        @Override
+        public Unit f(String message) {
+            channelList = fj.data.List.nil();
+            responseList = fj.data.List.nil();
+            mergerInstance = null;
+
+            boolean isUnlocked = lock.compareAndSet(1,0);
+            if(!isUnlocked) {
+                throw new RuntimeException();
+            }
+            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
+            log.info(message);
+            return Unit.unit();
+        }
+    };
 
     public void runTask(Path pathToFile, Channel wsClientChannel) throws Exception {
         this.pathToFile = pathToFile;
@@ -56,12 +105,7 @@ public enum MasterTask {
             wsClientChannel.writeAndFlush(new TextWebSocketFrame("Succesfully send task to worker node"));
         }
         catch(Exception e) {
-            boolean isUnlocked = lock.compareAndSet(1,0);
-            if(!isUnlocked) {
-                IllegalStateException ex = new IllegalStateException("Can't unlock locked file");
-                ex.initCause(e);
-                throw ex;
-            }
+            onError.f(e.getMessage());
             throw e;
         }
     }
@@ -112,7 +156,7 @@ public enum MasterTask {
             for(Channel channel : channelList) {
                 channel.writeAndFlush(MasterWorkerMessage.STOP_TASK_TRANSMISSION.getByteBuf()).sync();
             }
-            log.info("Successfully send stop transmission message");
+            log.info("Successfully send shutdownNow transmission message");
         }
         //TODO set timeout for cancel operation
     }
@@ -121,14 +165,23 @@ public enum MasterTask {
         wsClientChannel.writeAndFlush(new TextWebSocketFrame("Worker with id "+id+"finished job"));
         responseList = fj.data.List.cons(Boolean.TRUE, responseList);
         if(responseList.length() == channelList.length()) {
+            String message = "Start to merge worker nodes results.";
+            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
+            log.info(message);
+            responseList = fj.data.List.nil();
             collectResult();
         }
+
         //TODO set timeout for cancel operation
     }
 
     private  void collectResult() {
 
-        initMerger();
+        fj.data.List<String> idList = channelList.map(
+             channel -> channel.id().asShortText()
+        );
+        mergerInstance = new Merger(idList, numberOfKeys, before, onError, onSuccess);
+        mergerInstance.init();
         try {
             for (Channel channel : channelList) {
                 channel.writeAndFlush(MasterWorkerMessage.GET_RESULT.getByteBuf()).sync();
@@ -138,122 +191,14 @@ public enum MasterTask {
             log.info(message);
         }
         catch(Exception e) {
-            String errorMessage = "Can't send collect message to worker nodes. Task execution stopped.";
-            wsClientChannel.writeAndFlush(new TextWebSocketFrame(errorMessage));
-            log.info(errorMessage);
-            boolean isUnlocked = lock.compareAndSet(1,0);
-            if(!isUnlocked) {
-                throw new RuntimeException();
-            }
-            stopMerger();
+            //String errorMessage = "Can't send collect message to worker nodes. Task execution stopped.";
+            mergerInstance.shutdownNow();
+            onError.f(e.getMessage());
         }
-    }
-
-    private void stopMerger() {
-        dequeMap.clear();
-        executor.shutdownNow();
-    }
-
-    private void initMerger() {
-        for (Channel channel : channelList) {
-            dequeMap.put(
-                    channel.id().asShortText(),
-                    new LinkedBlockingDeque<long[]>()
-            );
-        }
-        executor.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                String message = "Start to merge worker nodes results.";
-                wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
-                log.info(message);
-
-                String[] id = new String[channelList.length()];
-                int totalKeysInOneGeneration = Constants.RESULT_CHUNK_SIZE_IN_KEYS*channelList.length();
-                int maxGeneration = ((int)numberOfKeys/totalKeysInOneGeneration +
-                        (numberOfKeys%totalKeysInOneGeneration == 0 ? 0:1));
-                int i = 0;
-
-                for (Map.Entry<String,LinkedBlockingDeque<long[]>> dequeEntrySet : dequeMap.entrySet()) {
-                    id[i] = dequeEntrySet.getKey();
-                }
-
-                try {
-                    multiMergeAndSave(id,  maxGeneration, totalKeysInOneGeneration);
-                }
-                catch(InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                dequeMap.clear();
-                boolean isUnlocked = lock.compareAndSet(1,0);
-                if(!isUnlocked) {
-                    throw new RuntimeException();
-                }
-                message = "Successfully merged worker nodes results.";
-                wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
-                log.info(message);
-            }
-        });
-        log.info("Init Merger");
-    }
-
-    public void multiMergeAndSave(String[] id, int maxGeneration, int totalKeysInOneGeneration) throws InterruptedException {
-
-        long[][] multiArr = new long[id.length][];
-        int[] curIndex = new int[id.length];
-        int[] curGeneration = new int[id.length];
-
-        int curNumberOfArrWithMinValue = -1;
-        int generation = 0;
-
-        for(int i = 0; i< id.length; ++i) {
-            multiArr[i] = dequeMap.get(id[i]).takeFirst();
-        }
-
-        System.out.println("MaxGeneration: "+maxGeneration);
-        while(generation < maxGeneration) {
-            int mergeArrLength = (int)(generation < maxGeneration - 1 ?
-                    totalKeysInOneGeneration : numberOfKeys - totalKeysInOneGeneration*generation);
-            long[] mergeArr = new long[mergeArrLength];
-            for (int i = 0; i < mergeArrLength; ++i) {
-                long curMinValue = Long.MAX_VALUE;
-                int indexOfArrWithMinValue = 0;
-                for (int k = 0; k < multiArr.length; ++k) {
-                    if (curIndex[k] < multiArr[k].length && multiArr[k][curIndex[k]] < curMinValue) {
-                        curMinValue = multiArr[k][curIndex[k]];
-                        curNumberOfArrWithMinValue = k;
-                    }
-                }
-                ++curIndex[curNumberOfArrWithMinValue];
-                mergeArr[i] = curMinValue;
-
-                if (curIndex[curNumberOfArrWithMinValue] == multiArr[curNumberOfArrWithMinValue].length) {
-
-                    if(curGeneration[curNumberOfArrWithMinValue]<maxGeneration-1) {
-
-                        LinkedBlockingDeque<long[]> deque = dequeMap.get(id[curNumberOfArrWithMinValue]);
-                        log.info("Try to get element from deque: "+deque.size()+"; Generation: "+curGeneration[curNumberOfArrWithMinValue]);
-                        multiArr[curNumberOfArrWithMinValue] = deque.takeFirst();
-
-
-                        curIndex[curNumberOfArrWithMinValue] = 0;
-                        ++curGeneration[curNumberOfArrWithMinValue];
-                    }
-                }
-            }
-            //System.out.println("First: "+mergeArr[0]+"; Last: "+mergeArr[mergeArr.length-1]+"; Length: "+mergeArr.length+"; Generation: "+generation);
-            //TODO Save file
-            ++generation;
-        }
-
-        log.info("End of merging");
     }
 
     public void putArrayInQueue(String id, int numberOfChunk, long[] sortedArr) {
-        LinkedBlockingDeque<long[]> deque = dequeMap.get(id);
-        log.info("addLast in queue chunk: "+numberOfChunk+"; queueSize: "+deque.size());
-        deque.addLast(sortedArr);
+        mergerInstance.putArrayInQueue(id, numberOfChunk, sortedArr);
     }
 
     private int calcChunkQuantity(long numberOfKeys, int countOfWorkerNodes) {
