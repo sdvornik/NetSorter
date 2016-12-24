@@ -135,7 +135,7 @@ public final class Merger {
 
     public void putArrayInQueue(String id, int numberOfChunk, long[] sortedArr) {
         LinkedBlockingDeque<long[]> deque = dequeMap.get(id);
-        log.info("addLast in queue chunk: "+numberOfChunk+"; queueSize: "+deque.size());
         deque.addLast(sortedArr);
+        log.info("addLast in queue chunk: "+numberOfChunk+"; queueSize: "+deque.size()+"; array size: "+sortedArr.length);
     }
 }

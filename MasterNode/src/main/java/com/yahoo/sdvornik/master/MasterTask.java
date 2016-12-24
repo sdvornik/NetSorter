@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public enum MasterTask {
@@ -30,6 +31,7 @@ public enum MasterTask {
     INSTANCE;
 
     private final Logger log = LoggerFactory.getLogger(MasterTask.class.getName());
+    private final static ThreadLocalRandom random = ThreadLocalRandom.current();
 
     private AtomicInteger lock = new AtomicInteger(0);
     private Path pathToFile;
@@ -110,6 +112,42 @@ public enum MasterTask {
         }
     }
 
+    private int[] arrayIndexRandomizer(int length) {
+        int[] a = new int[length];
+        for(int i = 0; i < length; ++i){
+            a[i] = i;
+        }
+        for(int i = length-1; i>=0; --i) {
+            int j = random.nextInt(i+1);
+            int tmp = a[j];
+            a[j] = a[i];
+            a[i] = tmp;
+        }
+        return a;
+    }
+
+    private void byteBufferRandomizer(ByteBuffer buffer, int offset, int limit, int[] map) {
+        int blocksCount = (limit-offset)/Long.BYTES;
+        if(blocksCount > map.length) {
+            throw new IllegalArgumentException("Limit value must be equal or less map.length");
+        }
+        for(int i = 0; i< blocksCount; ++i) {
+            byte[] tempI = new byte[Long.BYTES];
+            byte[] tempJ = new byte[Long.BYTES];
+            buffer.position(offset+i*Long.BYTES);
+            buffer.get(tempI);
+            buffer.position(offset+map[i]*Long.BYTES);
+            buffer.get(tempJ);
+
+            buffer.position(offset+i*Long.BYTES);
+            buffer.put(tempJ, 0, Long.BYTES);
+            buffer.position(offset+map[i]*Long.BYTES);
+            buffer.put(tempI, 0, Long.BYTES);
+        }
+        buffer.position(0);
+        buffer.limit(limit);
+    }
+
     public void distributeTask() throws Exception {
         try (SeekableByteChannel seekableByteChannel =
                                 Files.newByteChannel(pathToFile, EnumSet.of(StandardOpenOption.READ))) {
@@ -121,6 +159,7 @@ public enum MasterTask {
             int chunkQuantityToOneNode = totalChunkQuantity / countOfWorkerNodes;
 
             int chunkSize = (int) Math.ceil(numberOfKeys / (double) totalChunkQuantity);
+            int[] randomizerMap = arrayIndexRandomizer(chunkSize);
             log.info("ChunkSize: "+chunkSize);
 
             log.info("Total number of chunks for one node " + chunkQuantityToOneNode);
@@ -145,7 +184,9 @@ public enum MasterTask {
                     buffer.putInt(numberOfChunk);
                     seekableByteChannel.position(numberOfChunk*chunkSize * Long.BYTES);
                     seekableByteChannel.read(buffer);
-                    buffer.flip();
+                    int offset = Long.BYTES+Integer.BYTES;
+                    int limit = buffer.position();
+                    byteBufferRandomizer(buffer, Long.BYTES+Integer.BYTES, limit, randomizerMap);
                     ByteBuf nettyBuf = Unpooled.wrappedBuffer(buffer);
                     outputChannel.writeAndFlush(nettyBuf).sync();
                     buffer.clear();
@@ -191,7 +232,6 @@ public enum MasterTask {
             log.info(message);
         }
         catch(Exception e) {
-            //String errorMessage = "Can't send collect message to worker nodes. Task execution stopped.";
             mergerInstance.shutdownNow();
             onError.f(e.getMessage());
         }

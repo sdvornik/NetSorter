@@ -25,8 +25,9 @@ public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
                         Worker.INSTANCE.setMasterNodeChannel(null);
-                        log.info("Worker node lost connection with master node. Start broadcast listener.");
+                        log.info("Worker node lost connection with master node. Start broadcast listener/");
                         new BroadcastListener().blockingInit();
+
                     }
                 }
         );
