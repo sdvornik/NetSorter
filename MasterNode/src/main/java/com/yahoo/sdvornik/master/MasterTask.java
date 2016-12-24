@@ -170,11 +170,11 @@ public enum MasterTask {
                   channel.writeAndFlush(buf).sync();
             }
 
-            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES+Integer.BYTES+chunkSize*Long.BYTES);
+            for (int numberOfCycle = 0, numberOfNode = 0; numberOfCycle < chunkQuantityToOneNode; ++numberOfCycle) {
 
-            for (int numberOfCycle = 0; numberOfCycle < chunkQuantityToOneNode; ++numberOfCycle) {
-                int numberOfNode = 0;
                 for (Channel outputChannel : channelList) {
+                    ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES+Integer.BYTES+chunkSize*Long.BYTES);
+
                     int numberOfChunk = numberOfCycle * countOfWorkerNodes + numberOfNode;
 
                     long count = numberOfChunk < totalChunkQuantity-1 ?
@@ -186,18 +186,24 @@ public enum MasterTask {
                     seekableByteChannel.read(buffer);
                     int offset = Long.BYTES+Integer.BYTES;
                     int limit = buffer.position();
-                    byteBufferRandomizer(buffer, Long.BYTES+Integer.BYTES, limit, randomizerMap);
+
+                    if((limit - offset)/Long.BYTES == randomizerMap.length) {
+                        byteBufferRandomizer(buffer, offset, limit, randomizerMap);
+                    }
+                    else {
+                        int[] restrictedRandomizerMap = arrayIndexRandomizer((limit - offset)/Long.BYTES);
+                        byteBufferRandomizer(buffer, offset, limit, restrictedRandomizerMap);
+                    }
                     ByteBuf nettyBuf = Unpooled.wrappedBuffer(buffer);
-                    outputChannel.writeAndFlush(nettyBuf).sync();
-                    buffer.clear();
+                    outputChannel.writeAndFlush(nettyBuf);
                     ++numberOfNode;
                 }
             }
 
             for(Channel channel : channelList) {
-                channel.writeAndFlush(MasterWorkerMessage.STOP_TASK_TRANSMISSION.getByteBuf()).sync();
+                channel.writeAndFlush(MasterWorkerMessage.STOP_TASK_TRANSMISSION.getByteBuf());
             }
-            log.info("Successfully send shutdownNow transmission message");
+            log.info("Successfully send STOP_TASK_TRANSMISSION message");
         }
         //TODO set timeout for cancel operation
     }
