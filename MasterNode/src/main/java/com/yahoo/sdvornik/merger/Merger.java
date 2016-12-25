@@ -24,6 +24,8 @@ public final class Merger {
 
     private final fj.data.List<String> idList;
     private final long numberOfKeys;
+    private final int totalKeysInOneGeneration;
+    private final long[] mergedArr;
 
     private final fj.F0<Unit> before;
     private final fj.F<String, Unit> onError;
@@ -32,12 +34,16 @@ public final class Merger {
     public Merger(
             fj.data.List<String> idList,
             long numberOfKeys,
+            int totalKeysInOneGeneration,
+            long[] mergedArr,
             fj.F0<Unit> before,
             fj.F<String, Unit> onError,
             fj.F0<Unit> onSuccess
     ) {
         this.idList = idList;
         this.numberOfKeys = numberOfKeys;
+        this.totalKeysInOneGeneration = totalKeysInOneGeneration;
+        this.mergedArr = mergedArr;
         this.before = before;
         this.onError = onError;
         this.onSuccess = onSuccess;
@@ -49,13 +55,12 @@ public final class Merger {
         public void run() {
 
             if(before!=null) before.f();
-            int totalKeysInOneGeneration = Constants.RESULT_CHUNK_SIZE_IN_KEYS*idList.length();
+
             int maxGeneration = ((int)numberOfKeys/totalKeysInOneGeneration +
                     (numberOfKeys%totalKeysInOneGeneration == 0 ? 0:1));
-            int i = 0;
 
             try {
-                multiMergeAndSave(idList.array(String[].class),  maxGeneration, totalKeysInOneGeneration);
+                multiMergeAndSave(idList.array(String[].class),  numberOfKeys, totalKeysInOneGeneration);
                 if(onSuccess!=null) onSuccess.f();
             }
             catch(InterruptedException e) {
@@ -81,7 +86,10 @@ public final class Merger {
         executor.shutdownNow();
     }
 
-    public void multiMergeAndSave(String[] id, int maxGeneration, int totalKeysInOneGeneration) throws InterruptedException {
+    public void multiMergeAndSave(String[] id, long numberOfKeys, int totalKeysInOneGeneration) throws InterruptedException {
+
+        int maxGeneration = ((int)numberOfKeys/totalKeysInOneGeneration +
+                (numberOfKeys%totalKeysInOneGeneration == 0 ? 0:1));
 
         long[][] multiArr = new long[id.length][];
         int[] curIndex = new int[id.length];
@@ -92,41 +100,43 @@ public final class Merger {
 
         for(int i = 0; i< id.length; ++i) {
             multiArr[i] = dequeMap.get(id[i]).takeFirst();
+            curGeneration[i]=1;
         }
 
-        System.out.println("MaxGeneration: "+maxGeneration);
         while(generation < maxGeneration) {
             int mergeArrLength = (int)(generation < maxGeneration - 1 ?
                     totalKeysInOneGeneration : numberOfKeys - totalKeysInOneGeneration*generation);
             long[] mergeArr = new long[mergeArrLength];
             for (int i = 0; i < mergeArrLength; ++i) {
                 long curMinValue = Long.MAX_VALUE;
-                int indexOfArrWithMinValue = 0;
+
                 for (int k = 0; k < multiArr.length; ++k) {
                     if (curIndex[k] < multiArr[k].length && multiArr[k][curIndex[k]] < curMinValue) {
                         curMinValue = multiArr[k][curIndex[k]];
                         curNumberOfArrWithMinValue = k;
                     }
                 }
-                ++curIndex[curNumberOfArrWithMinValue];
                 mergeArr[i] = curMinValue;
+                ++curIndex[curNumberOfArrWithMinValue];
 
                 if (curIndex[curNumberOfArrWithMinValue] == multiArr[curNumberOfArrWithMinValue].length) {
 
-                    if(curGeneration[curNumberOfArrWithMinValue]<maxGeneration-1) {
+                    if(curGeneration[curNumberOfArrWithMinValue]<maxGeneration) {
 
                         LinkedBlockingDeque<long[]> deque = dequeMap.get(id[curNumberOfArrWithMinValue]);
-                        log.info("Try to get element from deque: "+deque.size()+"; Generation: "+curGeneration[curNumberOfArrWithMinValue]);
-                        multiArr[curNumberOfArrWithMinValue] = deque.takeFirst();
 
+                        multiArr[curNumberOfArrWithMinValue] = deque.takeFirst();
 
                         curIndex[curNumberOfArrWithMinValue] = 0;
                         ++curGeneration[curNumberOfArrWithMinValue];
                     }
                 }
             }
-            //System.out.println("First: "+mergeArr[0]+"; Last: "+mergeArr[mergeArr.length-1]+"; Length: "+mergeArr.length+"; Generation: "+generation);
-            //TODO Save file
+            if(mergedArr!=null) {
+                for (int i = 0; i < mergeArr.length; ++i) {
+                    mergedArr[i+generation*totalKeysInOneGeneration] = mergeArr[i];
+                }
+            }
             ++generation;
         }
 
@@ -136,6 +146,5 @@ public final class Merger {
     public void putArrayInQueue(String id, int numberOfChunk, long[] sortedArr) {
         LinkedBlockingDeque<long[]> deque = dequeMap.get(id);
         deque.addLast(sortedArr);
-        log.info("addLast in queue chunk: "+numberOfChunk+"; queueSize: "+deque.size()+"; array size: "+sortedArr.length);
     }
 }

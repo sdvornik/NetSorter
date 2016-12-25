@@ -152,26 +152,29 @@ public enum MasterTask {
         try (SeekableByteChannel seekableByteChannel =
                                 Files.newByteChannel(pathToFile, EnumSet.of(StandardOpenOption.READ))) {
 
+            int countOfWorkerNodes = channelList.length();
+
             numberOfKeys = seekableByteChannel.size() / Long.BYTES;
             log.info("Total number of keys: "+numberOfKeys);
-            int countOfWorkerNodes = channelList.length();
+
             int totalChunkQuantity = calcChunkQuantity(numberOfKeys, countOfWorkerNodes);
             int chunkQuantityToOneNode = totalChunkQuantity / countOfWorkerNodes;
+            log.info("Total number of chunks for one node " + chunkQuantityToOneNode);
 
             int chunkSize = (int) Math.ceil(numberOfKeys / (double) totalChunkQuantity);
-            int[] randomizerMap = arrayIndexRandomizer(chunkSize);
             log.info("ChunkSize: "+chunkSize);
 
-            log.info("Total number of chunks for one node " + chunkQuantityToOneNode);
+            int[] randomizerMap = arrayIndexRandomizer(chunkSize);
 
             MasterWorkerMessage enumMsg = MasterWorkerMessage.START_SORTING;
             ByteBuf buf = enumMsg.getByteBuf(chunkQuantityToOneNode);
-            for(Channel channel : channelList) {
-                  channel.writeAndFlush(buf).sync();
+
+            for(Channel outputChannel : channelList) {
+                  outputChannel.writeAndFlush(buf);
             }
 
-            for (int numberOfCycle = 0, numberOfNode = 0; numberOfCycle < chunkQuantityToOneNode; ++numberOfCycle) {
-
+            for (int numberOfCycle = 0 ; numberOfCycle < chunkQuantityToOneNode; ++numberOfCycle) {
+                int numberOfNode = 0;
                 for (Channel outputChannel : channelList) {
                     ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES+Integer.BYTES+chunkSize*Long.BYTES);
 
@@ -227,7 +230,15 @@ public enum MasterTask {
         fj.data.List<String> idList = channelList.map(
              channel -> channel.id().asShortText()
         );
-        mergerInstance = new Merger(idList, numberOfKeys, before, onError, onSuccess);
+        mergerInstance = new Merger(
+                idList,
+                numberOfKeys,
+                Constants.RESULT_CHUNK_SIZE_IN_KEYS*idList.length(),
+                null,
+                before,
+                onError,
+                onSuccess
+        );
         mergerInstance.init();
         try {
             for (Channel channel : channelList) {
