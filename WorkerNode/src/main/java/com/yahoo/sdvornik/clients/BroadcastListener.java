@@ -1,7 +1,8 @@
-package com.yahoo.sdvornik.broadcastlistener;
+package com.yahoo.sdvornik.clients;
 
-import com.yahoo.sdvornik.main.Worker;
-import com.yahoo.sdvornik.sharable.Constants;
+import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.handlers.BroadcastMessageHandler;
+import com.yahoo.sdvornik.message.codec.BroadcastMsgCodec;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -36,7 +37,7 @@ public class BroadcastListener {
                     protected void initChannel(Channel channel)
                             throws Exception {
                         ChannelPipeline pipeline = channel.pipeline();
-                        pipeline.addLast(new BroadcastMessageDecoder());
+                        pipeline.addLast(new BroadcastMsgCodec());
                         pipeline.addLast(new BroadcastMessageHandler());
                     }
                 } )
@@ -44,7 +45,6 @@ public class BroadcastListener {
         try {
             bootstrap.bind().sync();
             log.info("BroadcastListener successfully started");
-            Worker.INSTANCE.setBroadcastListener(this);
         }
         catch(InterruptedException e) {
             log.error("Can't start BroadcastListener");

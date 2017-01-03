@@ -1,12 +1,10 @@
 package com.yahoo.sdvornik.master;
 
-import com.yahoo.sdvornik.merger.Merger;
-import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.main.Master;
-import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
-import fj.Unit;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import com.yahoo.sdvornik.message.Message;
+import com.yahoo.sdvornik.message.DataMessageBuffer;
+import com.yahoo.sdvornik.message.StartSortingMessage;
+import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.main.MasterEntryPoint;import fj.Unit;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
@@ -18,11 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -94,7 +87,7 @@ public enum MasterTask {
     public void runTask(Path pathToFile, Channel wsClientChannel) throws Exception {
         this.pathToFile = pathToFile;
         this.wsClientChannel = wsClientChannel;
-        this.channelList = fj.data.List.iterableList(Master.INSTANCE.getMasterChannelGroup());
+        this.channelList = fj.data.List.iterableList(MasterEntryPoint.INSTANCE.getMasterChannelGroup());
         if (channelList.isEmpty()) {
             throw new IllegalStateException("Nothing worker node are connected to master node");
         }
@@ -112,6 +105,112 @@ public enum MasterTask {
         }
     }
 
+    public void distributeTask() throws Exception {
+        try (SeekableByteChannel seekableByteChannel =
+                                Files.newByteChannel(pathToFile, EnumSet.of(StandardOpenOption.READ))) {
+
+            int countOfWorkerNodes = channelList.length();
+
+            numberOfKeys = seekableByteChannel.size() / Long.BYTES;
+            log.info("Total number of keys: "+numberOfKeys);
+
+            int totalChunkQuantity = calcChunkQuantity(numberOfKeys, countOfWorkerNodes);
+            int chunkQuantityToOneNode = totalChunkQuantity / countOfWorkerNodes;
+            log.info("Total number of chunks for one node " + chunkQuantityToOneNode);
+
+            int chunkSize = (int) Math.ceil(numberOfKeys / (double) totalChunkQuantity);
+            log.info("ChunkSize: "+chunkSize);
+
+            //int[] randomizerMap = arrayIndexRandomizer(chunkSize);
+
+            Message msg = new StartSortingMessage(chunkQuantityToOneNode);
+            for(Channel outputChannel : channelList) {
+                    outputChannel.writeAndFlush(msg);
+            }
+
+            for (int numberOfCycle = 0 ; numberOfCycle < chunkQuantityToOneNode; ++numberOfCycle) {
+                int numberOfNode = 0;
+                for (Channel outputChannel : channelList) {
+                    ByteBuffer buffer = ByteBuffer.allocate(chunkSize*Long.BYTES);
+
+                    int numberOfChunk = numberOfCycle * countOfWorkerNodes + numberOfNode;
+
+                    seekableByteChannel.position(numberOfChunk*chunkSize * Long.BYTES);
+                    seekableByteChannel.read(buffer);
+                    buffer.flip();
+                    DataMessageBuffer dataMsg = new DataMessageBuffer(buffer, numberOfChunk);
+
+                    outputChannel.writeAndFlush(dataMsg);
+                    ++numberOfNode;
+                }
+            }
+
+            for(Channel channel : channelList) {
+                channel.writeAndFlush(
+                        Message.getSimpleOutboundMessage(Message.Type.TASK_TRANSMISSION_ENDED)
+                );
+            }
+            log.info("Successfully send TASK_TRANSMISSION_ENDED message");
+        }
+        //TODO set timeout for cancel operation
+    }
+
+    public void saveResponse(String id) {
+        wsClientChannel.writeAndFlush(new TextWebSocketFrame("Worker with id "+id+" finished job"));
+        responseList = fj.data.List.cons(Boolean.TRUE, responseList);
+        if(responseList.length() == channelList.length()) {
+            String message = "Start to merge worker nodes results.";
+            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
+            log.info(message);
+            responseList = fj.data.List.nil();
+            collectResult();
+        }
+
+        //TODO set timeout for cancel operation
+    }
+
+    private  void collectResult() {
+
+        fj.data.List<String> idList = channelList.map(
+             channel -> channel.id().asShortText()
+        );
+        mergerInstance = new Merger(
+                idList,
+                numberOfKeys,
+                Constants.RESULT_CHUNK_SIZE_IN_KEYS*idList.length(),
+                null,
+                before,
+                onError,
+                onSuccess
+        );
+        mergerInstance.init();
+        try {
+            for (Channel channel : channelList) {
+                channel.writeAndFlush(Message.getSimpleOutboundMessage(Message.Type.GET_RESULT)).sync();
+            }
+            String message = "Successfully send collect message";
+            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
+            log.info(message);
+        }
+        catch(Exception e) {
+            mergerInstance.shutdownNow();
+            onError.f(e.getMessage());
+        }
+    }
+
+    public void putArrayInQueue(String id, int numberOfChunk, long[] sortedArr) {
+        mergerInstance.putArrayInQueue(id, numberOfChunk, sortedArr);
+    }
+
+    private int calcChunkQuantity(long numberOfKeys, int countOfWorkerNodes) {
+        double parameter = (double) (countOfWorkerNodes*Constants.DEFAULT_CHUNK_SIZE_IN_KEYS);
+        int power = (int)Math.floor(Math.log(numberOfKeys/parameter)/Math.log(2));
+
+        return countOfWorkerNodes*(int)Math.pow(2,power);
+    }
+
+    //TODO remove
+    /*
     private int[] arrayIndexRandomizer(int length) {
         int[] a = new int[length];
         for(int i = 0; i < length; ++i){
@@ -147,121 +246,5 @@ public enum MasterTask {
         buffer.position(0);
         buffer.limit(limit);
     }
-
-    public void distributeTask() throws Exception {
-        try (SeekableByteChannel seekableByteChannel =
-                                Files.newByteChannel(pathToFile, EnumSet.of(StandardOpenOption.READ))) {
-
-            int countOfWorkerNodes = channelList.length();
-
-            numberOfKeys = seekableByteChannel.size() / Long.BYTES;
-            log.info("Total number of keys: "+numberOfKeys);
-
-            int totalChunkQuantity = calcChunkQuantity(numberOfKeys, countOfWorkerNodes);
-            int chunkQuantityToOneNode = totalChunkQuantity / countOfWorkerNodes;
-            log.info("Total number of chunks for one node " + chunkQuantityToOneNode);
-
-            int chunkSize = (int) Math.ceil(numberOfKeys / (double) totalChunkQuantity);
-            log.info("ChunkSize: "+chunkSize);
-
-            int[] randomizerMap = arrayIndexRandomizer(chunkSize);
-
-            MasterWorkerMessage enumMsg = MasterWorkerMessage.START_SORTING;
-            ByteBuf buf = enumMsg.getByteBuf(chunkQuantityToOneNode);
-
-            for(Channel outputChannel : channelList) {
-                  outputChannel.writeAndFlush(buf);
-            }
-
-            for (int numberOfCycle = 0 ; numberOfCycle < chunkQuantityToOneNode; ++numberOfCycle) {
-                int numberOfNode = 0;
-                for (Channel outputChannel : channelList) {
-                    ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES+Integer.BYTES+chunkSize*Long.BYTES);
-
-                    int numberOfChunk = numberOfCycle * countOfWorkerNodes + numberOfNode;
-
-                    long count = numberOfChunk < totalChunkQuantity-1 ?
-                            chunkSize * Long.BYTES :
-                            seekableByteChannel.size() - numberOfChunk * chunkSize * Long.BYTES;
-                    buffer.putLong(Integer.BYTES+count);
-                    buffer.putInt(numberOfChunk);
-                    seekableByteChannel.position(numberOfChunk*chunkSize * Long.BYTES);
-                    seekableByteChannel.read(buffer);
-                    int offset = Long.BYTES+Integer.BYTES;
-                    int limit = buffer.position();
-
-                    if((limit - offset)/Long.BYTES == randomizerMap.length) {
-                        byteBufferRandomizer(buffer, offset, limit, randomizerMap);
-                    }
-                    else {
-                        int[] restrictedRandomizerMap = arrayIndexRandomizer((limit - offset)/Long.BYTES);
-                        byteBufferRandomizer(buffer, offset, limit, restrictedRandomizerMap);
-                    }
-                    ByteBuf nettyBuf = Unpooled.wrappedBuffer(buffer);
-                    outputChannel.writeAndFlush(nettyBuf);
-                    ++numberOfNode;
-                }
-            }
-
-            for(Channel channel : channelList) {
-                channel.writeAndFlush(MasterWorkerMessage.STOP_TASK_TRANSMISSION.getByteBuf());
-            }
-            log.info("Successfully send STOP_TASK_TRANSMISSION message");
-        }
-        //TODO set timeout for cancel operation
-    }
-
-    public void saveResponse(String id) {
-        wsClientChannel.writeAndFlush(new TextWebSocketFrame("Worker with id "+id+"finished job"));
-        responseList = fj.data.List.cons(Boolean.TRUE, responseList);
-        if(responseList.length() == channelList.length()) {
-            String message = "Start to merge worker nodes results.";
-            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
-            log.info(message);
-            responseList = fj.data.List.nil();
-            collectResult();
-        }
-
-        //TODO set timeout for cancel operation
-    }
-
-    private  void collectResult() {
-
-        fj.data.List<String> idList = channelList.map(
-             channel -> channel.id().asShortText()
-        );
-        mergerInstance = new Merger(
-                idList,
-                numberOfKeys,
-                Constants.RESULT_CHUNK_SIZE_IN_KEYS*idList.length(),
-                null,
-                before,
-                onError,
-                onSuccess
-        );
-        mergerInstance.init();
-        try {
-            for (Channel channel : channelList) {
-                channel.writeAndFlush(MasterWorkerMessage.GET_RESULT.getByteBuf()).sync();
-            }
-            String message = "Successfully send collect message";
-            wsClientChannel.writeAndFlush(new TextWebSocketFrame(message));
-            log.info(message);
-        }
-        catch(Exception e) {
-            mergerInstance.shutdownNow();
-            onError.f(e.getMessage());
-        }
-    }
-
-    public void putArrayInQueue(String id, int numberOfChunk, long[] sortedArr) {
-        mergerInstance.putArrayInQueue(id, numberOfChunk, sortedArr);
-    }
-
-    private int calcChunkQuantity(long numberOfKeys, int countOfWorkerNodes) {
-        double parameter = (double) (countOfWorkerNodes*Constants.DEFAULT_CHUNK_SIZE_IN_KEYS);
-        int power = (int)Math.floor(Math.log(numberOfKeys/parameter)/Math.log(2));
-
-        return countOfWorkerNodes*(int)Math.pow(2,power);
-    }
+    */
 }

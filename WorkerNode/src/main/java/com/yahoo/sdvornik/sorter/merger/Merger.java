@@ -1,16 +1,18 @@
-package com.yahoo.sdvornik.merger;
+package com.yahoo.sdvornik.sorter.merger;
 
-import com.yahoo.sdvornik.main.Worker;
-import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.sharable.MasterWorkerMessage;
+import com.yahoo.sdvornik.main.WorkerEntryPoint;
+import com.yahoo.sdvornik.message.DataMessageArray;
+import com.yahoo.sdvornik.message.Message;
+import com.yahoo.sdvornik.Constants;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -70,9 +72,11 @@ public enum Merger {
             maxTaskNumber = 0;
             log.info("Merging successfully ended. Resulting array length: "+result.length+"; first: "+result[0]+"; last: "+result[result.length-1]);
 
-            Channel masterChannel = Worker.INSTANCE.getMasterNodeChannel();
+            Channel masterChannel = WorkerEntryPoint.INSTANCE.getMasterNodeChannel();
             if(masterChannel != null) {
-                masterChannel.writeAndFlush(MasterWorkerMessage.JOB_ENDED.getByteBuf());
+                masterChannel.writeAndFlush(
+                        Message.getSimpleOutboundMessage(Message.Type.JOB_ENDED)
+                );
             }
             else {
                 result = null;
@@ -104,22 +108,24 @@ public enum Merger {
         int totalNumberOfChunk = result.length/Constants.RESULT_CHUNK_SIZE_IN_KEYS +
                 ((result.length%Constants.RESULT_CHUNK_SIZE_IN_KEYS == 0) ? 0 : 1);
 
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES+Integer.BYTES+Constants.RESULT_CHUNK_SIZE_IN_KEYS *Long.BYTES);
-
         for(int numberOfChunk = 0; numberOfChunk < totalNumberOfChunk; ++numberOfChunk) {
 
-            long count = (numberOfChunk < totalNumberOfChunk-1) ?
+            int count = (numberOfChunk < totalNumberOfChunk-1) ?
                     Constants.RESULT_CHUNK_SIZE_IN_KEYS :
                     (result.length - numberOfChunk * Constants.RESULT_CHUNK_SIZE_IN_KEYS);
-            buffer.putLong(Integer.BYTES+count*Long.BYTES);
-            buffer.putInt(numberOfChunk);
-            for(int i = 0; i < count; ++i) {
-                buffer.putLong(result[numberOfChunk*Constants.RESULT_CHUNK_SIZE_IN_KEYS+i]);
-            }
-            buffer.flip();
-            ByteBuf nettyBuf = Unpooled.wrappedBuffer(buffer);
-            Worker.INSTANCE.getMasterNodeChannel().writeAndFlush(nettyBuf);
-            buffer.clear();
+
+
+            DataMessageArray msg = new DataMessageArray(
+                    Arrays.copyOfRange(
+                            result,
+                            numberOfChunk * Constants.RESULT_CHUNK_SIZE_IN_KEYS,
+                            numberOfChunk * Constants.RESULT_CHUNK_SIZE_IN_KEYS+count
+                    ),
+                    numberOfChunk
+            );
+
+            WorkerEntryPoint.INSTANCE.getMasterNodeChannel().writeAndFlush(msg);
+
         }
         log.info("Successfully send result");
         result = null;

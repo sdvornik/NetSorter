@@ -1,8 +1,8 @@
-package com.yahoo.sdvornik.broadcastlistener;
+package com.yahoo.sdvornik.handlers;
 
-import com.yahoo.sdvornik.main.Worker;
-import com.yahoo.sdvornik.sharable.BroadcastMessage;
-import com.yahoo.sdvornik.worker.WorkerClient;
+import com.yahoo.sdvornik.clients.WorkerClient;
+import com.yahoo.sdvornik.main.WorkerEntryPoint;
+import com.yahoo.sdvornik.message.BroadcastMessage;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -42,8 +42,7 @@ public class BroadcastMessageHandler extends SimpleChannelInboundHandler<Broadca
                     @Override
                     public void run() {
                         if(new WorkerClient(address).blockingInit()) {
-                            Worker.INSTANCE.getBroadcastListener().stop();
-                            Worker.INSTANCE.setBroadcastListener(null);
+                            WorkerEntryPoint.INSTANCE.stopBroadcastListener();
                         };
                     }
                 }

@@ -1,16 +1,17 @@
 package com.yahoo.sdvornik.server;
 
-import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.main.Master;
-import com.yahoo.sdvornik.websocket.WebSocketServerInitializer;
+import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.handlers.WebSocketFrameHandler;
+import com.yahoo.sdvornik.main.MasterEntryPoint;
+import com.yahoo.sdvornik.handlers.HttpRequestHandler;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,18 @@ public class WebSocketServer {
         final ServerBootstrap wsBootstrap = new ServerBootstrap();
         wsBootstrap.group(wsEventLoopGroup)
                 .channel(NioServerSocketChannel.class)
-                .childHandler(new WebSocketServerInitializer(this));
+                .childHandler(new ChannelInitializer<Channel>() {
+                    @Override
+                    protected void initChannel(Channel ch) throws Exception {
+                        ChannelPipeline pipeline = ch.pipeline();
+                        pipeline.addLast(new HttpServerCodec());
+                        pipeline.addLast(new HttpObjectAggregator(64 * 1024));
+                        pipeline.addLast(new ChunkedWriteHandler());
+                        pipeline.addLast(new HttpRequestHandler("/ws"));
+                        pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));
+                        pipeline.addLast(new WebSocketFrameHandler());
+                    }
+                });
 
         ChannelFuture wsFuture = wsBootstrap.bind(new InetSocketAddress(Constants.WEBSOCKET_PORT));
 
@@ -49,7 +61,7 @@ public class WebSocketServer {
             public void operationComplete(ChannelFuture future) throws Exception {
                 if(!future.isSuccess()) {
                     log.error("Can't run WebSocket server", future.cause());
-                    Master.INSTANCE.stop();
+                    MasterEntryPoint.INSTANCE.stop();
                     return;
                 }
                 log.info("Successfully init WebSocket server");

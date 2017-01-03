@@ -1,11 +1,9 @@
 package com.yahoo.sdvornik;
 
-import com.yahoo.sdvornik.merger.Merger;
-import fj.Unit;
+import com.yahoo.sdvornik.master.Merger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 
 public class MultiMergerJUnit4Test {

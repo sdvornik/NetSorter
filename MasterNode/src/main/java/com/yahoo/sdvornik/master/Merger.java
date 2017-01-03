@@ -1,10 +1,7 @@
-package com.yahoo.sdvornik.merger;
+package com.yahoo.sdvornik.master;
 
 import com.yahoo.sdvornik.master.MasterTask;
-import com.yahoo.sdvornik.sharable.Constants;
 import fj.Unit;
-import io.netty.channel.Channel;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

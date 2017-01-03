@@ -11,6 +11,7 @@
     <modules>
         <module>WorkerNode</module>
         <module>MasterNode</module>
+        <module>Message</module>
     </modules>
     <build>
         <plugins>

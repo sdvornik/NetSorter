@@ -1,4 +1,4 @@
-package com.yahoo.sdvornik;
+package com.yahoo.sdvornik.utils;
 
 import fj.F0;
 import fj.Try;

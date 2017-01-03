@@ -1,19 +1,24 @@
 package com.yahoo.sdvornik.server;
 
-import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.main.Master;
-import com.yahoo.sdvornik.master.MasterServerInitializer;
+import com.yahoo.sdvornik.handlers.MasterServerHandler;
+import com.yahoo.sdvornik.message.codec.BufferToArrayCodec;
+import com.yahoo.sdvornik.message.codec.ByteBufToMsgDecoder;
+import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.main.MasterEntryPoint;
+import com.yahoo.sdvornik.message.codec.MsgToByteEncoder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
 /**
- * Master server
+ * MasterEntryPoint server
  */
 public class MasterServer {
 
@@ -40,19 +45,40 @@ public class MasterServer {
                 .option(ChannelOption.TCP_NODELAY, true)
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .localAddress(new InetSocketAddress(Constants.PORT))
-                .childHandler(new MasterServerInitializer());
+                .childHandler(new ChannelInitializer<SocketChannel>(){
+
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+
+                        ch.pipeline().addLast(
+                                new LengthFieldBasedFrameDecoder(
+                                        2* Constants.DEFAULT_CHUNK_SIZE_IN_KEYS*Long.BYTES,
+                                        0,
+                                        Long.BYTES,
+                                        0,
+                                        Long.BYTES
+                                )
+                        );
+
+                        ch.pipeline().addLast(new ByteBufToMsgDecoder());
+                        ch.pipeline().addLast(new MsgToByteEncoder());
+                        ch.pipeline().addLast(new BufferToArrayCodec());
+                        ch.pipeline().addLast(new MasterServerHandler());
+                    }
+                });
+
         ChannelFuture masterFuture = masterBootstrap.bind();
 
         masterFuture.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 if (!future.isSuccess()) {
-                    log.error("Can't run Master server", future.cause());
-                    Master.INSTANCE.stop();
+                    log.error("Can't run MasterEntryPoint server", future.cause());
+                    MasterEntryPoint.INSTANCE.stop();
                     return;
                 }
 
-                log.info("Successfully init Master server");
+                log.info("Successfully init MasterEntryPoint server");
             }
         });
 

@@ -1,8 +1,8 @@
-package com.yahoo.sdvornik.websocket;
+package com.yahoo.sdvornik.handlers;
 
-import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.generator.KeyGenerator;
-import com.yahoo.sdvornik.main.Master;
+import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.main.MasterEntryPoint;
+import com.yahoo.sdvornik.utils.KeyGenerator;
 import com.yahoo.sdvornik.master.MasterTask;
 import fj.Try;
 import fj.data.Validation;
@@ -16,10 +16,10 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
+public class WebSocketFrameHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
 
 
-    private static final Logger log = LoggerFactory.getLogger(WebSocketInboundFrameHandler.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(WebSocketFrameHandler.class.getName());
 
     private static final String JSON_TYPE_FIELD_NAME = "type";
 
@@ -31,9 +31,9 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
         if (evt.getClass() == WebSocketServerProtocolHandler.HandshakeComplete.class) {
             ctx.pipeline().remove(HttpRequestHandler.class);
             final Channel wsChannel = ctx.channel();
-            Master.INSTANCE.addChannelToWebSocketGroup(ctx.channel());
+            MasterEntryPoint.INSTANCE.addChannelToWebSocketGroup(ctx.channel());
 
-            ctx.writeAndFlush(new TextWebSocketFrame("Successfully connected to Master node"));
+            ctx.writeAndFlush(new TextWebSocketFrame("Successfully connected to MasterEntryPoint node"));
             log.info("WebSocket client connected. ID: " + ctx.channel().id().asShortText());
 
             ChannelFuture closeFuture = ctx.channel().closeFuture();
@@ -42,7 +42,7 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     log.info("WebSocket client disconnected. ID: " + ctx.channel().id().asShortText());
-                    Master.INSTANCE.removeChannelFromWebSocketGroup(ctx.channel());
+                    MasterEntryPoint.INSTANCE.removeChannelFromWebSocketGroup(ctx.channel());
                 }
             });
         }
@@ -89,7 +89,7 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
                 });
                 break;
             case("SHUTDOWN"):
-                Master.INSTANCE.stop();
+                MasterEntryPoint.INSTANCE.stop();
                 break;
 
             case("RUN"):
@@ -125,7 +125,7 @@ public class WebSocketInboundFrameHandler extends SimpleChannelInboundHandler<Te
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable e) throws Exception {
-        log.error("Exception in WebSocketInboundFrameHandler", e);
+        log.error("Exception in WebSocketFrameHandler", e);
         ctx.close();
     }
 

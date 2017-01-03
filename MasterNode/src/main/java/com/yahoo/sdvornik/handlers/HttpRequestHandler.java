@@ -1,16 +1,12 @@
-package com.yahoo.sdvornik.websocket;
+package com.yahoo.sdvornik.handlers;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-import io.netty.handler.codec.DecoderResult;
 import io.netty.handler.codec.http.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.RandomAccessFile;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 

@@ -1,10 +1,10 @@
 package com.yahoo.sdvornik.server;
 
-import com.yahoo.sdvornik.Utils;
-import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.sharable.BroadcastMessage;
-import com.yahoo.sdvornik.broadcaster.BroadcastMessageEncoder;
-import com.yahoo.sdvornik.main.Master;
+import com.yahoo.sdvornik.utils.Utils;
+import com.yahoo.sdvornik.Constants;
+import com.yahoo.sdvornik.message.BroadcastMessage;
+import com.yahoo.sdvornik.main.MasterEntryPoint;
+import com.yahoo.sdvornik.message.codec.BroadcastMsgCodec;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
@@ -36,7 +36,7 @@ public class BroadcastServer {
         udpBootstrap.group(udpEventLoopGroup)
                 .channel(NioDatagramChannel.class)
                 .option(ChannelOption.SO_BROADCAST, true)
-                .handler(new BroadcastMessageEncoder());
+                .handler(new BroadcastMsgCodec());
 
 
         ChannelFuture udpFuture = udpBootstrap.bind(0);
@@ -45,7 +45,7 @@ public class BroadcastServer {
             public void operationComplete(ChannelFuture future) throws Exception {
                 if(!future.isSuccess()) {
                     log.error("Can't run Broadcast server", future.cause());
-                    Master.INSTANCE.stop();
+                    MasterEntryPoint.INSTANCE.stop();
                     return;
                 }
                 log.info("Successfully init Broadcast server");

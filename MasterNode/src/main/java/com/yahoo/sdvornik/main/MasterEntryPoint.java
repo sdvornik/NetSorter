@@ -1,8 +1,5 @@
 package com.yahoo.sdvornik.main;
 
-import com.yahoo.sdvornik.sharable.Constants;
-import com.yahoo.sdvornik.Utils;
-import com.yahoo.sdvornik.sharable.BroadcastMessage;
 import com.yahoo.sdvornik.server.MasterServer;
 import com.yahoo.sdvornik.server.BroadcastServer;
 import com.yahoo.sdvornik.server.WebSocketServer;
@@ -19,11 +16,11 @@ import org.slf4j.LoggerFactory;
 /**
  * Main class for master node
  */
-public enum Master {
+public enum MasterEntryPoint {
 
     INSTANCE;
 
-    private final Logger log = LoggerFactory.getLogger(Master.class.getName());
+    private final Logger log = LoggerFactory.getLogger(MasterEntryPoint.class.getName());
 
     private final EventLoopGroup masterEventLoopGroup = new NioEventLoopGroup();
 
@@ -118,7 +115,7 @@ public enum Master {
             @Override
             public void operationComplete(ChannelGroupFuture future) throws Exception {
                 INSTANCE.masterEventLoopGroup.shutdownGracefully();
-                INSTANCE.log.info("Successfully shutdown Master server");
+                INSTANCE.log.info("Successfully shutdown MasterEntryPoint server");
             }
         });
 

@@ -1,7 +1,6 @@
 package com.yahoo.sdvornik;
 
 import com.yahoo.sdvornik.master.MasterTask;
-import com.yahoo.sdvornik.sharable.Constants;
 import org.junit.Assert;
 import org.junit.Test;
 

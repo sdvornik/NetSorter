@@ -1,6 +1,6 @@
-package com.yahoo.sdvornik.generator;
+package com.yahoo.sdvornik.utils;
 
-import com.yahoo.sdvornik.sharable.Constants;
+import com.yahoo.sdvornik.Constants;
 import fj.Try;
 import fj.data.Validation;
 
