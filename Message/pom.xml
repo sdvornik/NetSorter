@@ -23,8 +23,6 @@
                         <compress>true</compress>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <!--<classpathPrefix>libs/</classpathPrefix>
-                            <mainClass>a1s.client.App</mainClass>-->
                         </manifest>
                     </archive>
                 </configuration>
@@ -45,7 +43,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <!--<version>2.5.1</version>-->
             </plugin>
         </plugins>
     </build>

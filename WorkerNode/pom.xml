@@ -36,7 +36,7 @@
                         <compress>true</compress>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <!--<classpathPrefix>libs/</classpathPrefix>-->
+                            <classpathPrefix>libs/</classpathPrefix>
                             <mainClass>com.yahoo.sdvornik.main.WorkerEntryPoint</mainClass>
                         </manifest>
                     </archive>
@@ -58,7 +58,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <!--<version>2.5.1</version>-->
             </plugin>
         </plugins>
     </build>

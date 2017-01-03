@@ -121,8 +121,6 @@ public enum MasterTask {
             int chunkSize = (int) Math.ceil(numberOfKeys / (double) totalChunkQuantity);
             log.info("ChunkSize: "+chunkSize);
 
-            //int[] randomizerMap = arrayIndexRandomizer(chunkSize);
-
             Message msg = new StartSortingMessage(chunkQuantityToOneNode);
             for(Channel outputChannel : channelList) {
                     outputChannel.writeAndFlush(msg);
@@ -208,43 +206,4 @@ public enum MasterTask {
 
         return countOfWorkerNodes*(int)Math.pow(2,power);
     }
-
-    //TODO remove
-    /*
-    private int[] arrayIndexRandomizer(int length) {
-        int[] a = new int[length];
-        for(int i = 0; i < length; ++i){
-            a[i] = i;
-        }
-        for(int i = length-1; i>=0; --i) {
-            int j = random.nextInt(i+1);
-            int tmp = a[j];
-            a[j] = a[i];
-            a[i] = tmp;
-        }
-        return a;
-    }
-
-    private void byteBufferRandomizer(ByteBuffer buffer, int offset, int limit, int[] map) {
-        int blocksCount = (limit-offset)/Long.BYTES;
-        if(blocksCount > map.length) {
-            throw new IllegalArgumentException("Limit value must be equal or less map.length");
-        }
-        for(int i = 0; i< blocksCount; ++i) {
-            byte[] tempI = new byte[Long.BYTES];
-            byte[] tempJ = new byte[Long.BYTES];
-            buffer.position(offset+i*Long.BYTES);
-            buffer.get(tempI);
-            buffer.position(offset+map[i]*Long.BYTES);
-            buffer.get(tempJ);
-
-            buffer.position(offset+i*Long.BYTES);
-            buffer.put(tempJ, 0, Long.BYTES);
-            buffer.position(offset+map[i]*Long.BYTES);
-            buffer.put(tempI, 0, Long.BYTES);
-        }
-        buffer.position(0);
-        buffer.limit(limit);
-    }
-    */
 }
