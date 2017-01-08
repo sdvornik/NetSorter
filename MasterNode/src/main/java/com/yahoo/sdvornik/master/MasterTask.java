@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.EnumSet;
 import java.util.concurrent.ThreadLocalRandom;
@@ -172,11 +173,21 @@ public enum MasterTask {
         fj.data.List<String> idList = channelList.map(
              channel -> channel.id().asShortText()
         );
+        Path pathToResultFile = Paths.get(System.getProperty("user.home"), Constants.OUTPUT_FILE_NAME);
+        try {
+            Files.deleteIfExists(pathToResultFile);
+            Files.createFile(pathToResultFile);
+        }
+        catch(Exception e) {
+            log.error("Can't create output file.");
+            throw new RuntimeException(e);
+        }
+
         mergerInstance = new Merger(
                 idList,
                 numberOfKeys,
                 Constants.RESULT_CHUNK_SIZE_IN_KEYS*idList.length(),
-                null,
+                pathToResultFile,
                 before,
                 onError,
                 onSuccess

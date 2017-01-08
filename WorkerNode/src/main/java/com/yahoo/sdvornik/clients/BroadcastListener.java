@@ -6,6 +6,7 @@ import com.yahoo.sdvornik.message.codec.BroadcastMsgCodec;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,15 +33,15 @@ public class BroadcastListener {
         bootstrap.group(broadcastListenerGroup)
                 .channel(NioDatagramChannel.class)
                 .option(ChannelOption.SO_BROADCAST, true)
-                .handler( new ChannelInitializer<Channel>() {
+                .handler(new ChannelInitializer<Channel>() {
                     @Override
-                    protected void initChannel(Channel channel)
-                            throws Exception {
-                        ChannelPipeline pipeline = channel.pipeline();
-                        pipeline.addLast(new BroadcastMsgCodec());
-                        pipeline.addLast(new BroadcastMessageHandler());
+                    public void initChannel(Channel ch) throws Exception {
+                        ch.pipeline().addLast(
+                                new BroadcastMsgCodec(),
+                                new BroadcastMessageHandler()
+                        );
                     }
-                } )
+                })
                 .localAddress(address);
         try {
             bootstrap.bind().sync();

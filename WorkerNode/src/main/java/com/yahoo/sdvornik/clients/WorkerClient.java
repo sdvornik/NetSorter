@@ -66,13 +66,13 @@ public class WorkerClient {
                                         Long.BYTES,
                                         0,
                                         Long.BYTES
-                                )
+                                ),
+                                new ByteBufToMsgDecoder(),
+                                new MsgToByteEncoder(),
+                                new BufferToArrayCodec(),
+                                new ShuffleDecoder(),
+                                new WorkerClientHandler(connectionLock, condition)
                         );
-                        ch.pipeline().addLast(new ByteBufToMsgDecoder());
-                        ch.pipeline().addLast(new MsgToByteEncoder());
-                        ch.pipeline().addLast(new BufferToArrayCodec());
-                        ch.pipeline().addLast(new ShuffleDecoder());
-                        ch.pipeline().addLast(new WorkerClientHandler(connectionLock, condition));
 
                     }
                 });

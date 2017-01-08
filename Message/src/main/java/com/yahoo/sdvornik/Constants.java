@@ -30,4 +30,6 @@ public final class Constants {
     public final static String DEFAULT_FILE_NAME = "presorted.txt";
 
     public final static String OUTPUT_FILE_NAME = "sorted.txt";
+
+    public final static String TEST_OUTPUT_FILE_NAME = "sorted_test.txt";
 }

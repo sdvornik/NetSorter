@@ -1,10 +1,18 @@
 package com.yahoo.sdvornik.master;
 
-import com.yahoo.sdvornik.master.MasterTask;
+import com.yahoo.sdvornik.Constants;
 import fj.Unit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -22,7 +30,7 @@ public final class Merger {
     private final fj.data.List<String> idList;
     private final long numberOfKeys;
     private final int totalKeysInOneGeneration;
-    private final long[] mergedArr;
+    private final Path pathToResult;
 
     private final fj.F0<Unit> before;
     private final fj.F<String, Unit> onError;
@@ -32,7 +40,7 @@ public final class Merger {
             fj.data.List<String> idList,
             long numberOfKeys,
             int totalKeysInOneGeneration,
-            long[] mergedArr,
+            Path pathToResult,
             fj.F0<Unit> before,
             fj.F<String, Unit> onError,
             fj.F0<Unit> onSuccess
@@ -40,7 +48,7 @@ public final class Merger {
         this.idList = idList;
         this.numberOfKeys = numberOfKeys;
         this.totalKeysInOneGeneration = totalKeysInOneGeneration;
-        this.mergedArr = mergedArr;
+        this.pathToResult = pathToResult;
         this.before = before;
         this.onError = onError;
         this.onSuccess = onSuccess;
@@ -100,44 +108,54 @@ public final class Merger {
             curGeneration[i]=1;
         }
 
-        while(generation < maxGeneration) {
-            int mergeArrLength = (int)(generation < maxGeneration - 1 ?
-                    totalKeysInOneGeneration : numberOfKeys - totalKeysInOneGeneration*generation);
-            long[] mergeArr = new long[mergeArrLength];
-            for (int i = 0; i < mergeArrLength; ++i) {
-                long curMinValue = Long.MAX_VALUE;
+        try (WritableByteChannel writableByteChannel = Files.newByteChannel(pathToResult,
+                EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND))) {
 
-                for (int k = 0; k < multiArr.length; ++k) {
-                    if (curIndex[k] < multiArr[k].length && multiArr[k][curIndex[k]] < curMinValue) {
-                        curMinValue = multiArr[k][curIndex[k]];
-                        curNumberOfArrWithMinValue = k;
+            ByteBuffer buffer = ByteBuffer.allocate(totalKeysInOneGeneration*Long.BYTES);
+
+            while(generation < maxGeneration) {
+                int mergeArrLength = (int)(generation < maxGeneration - 1 ?
+                        totalKeysInOneGeneration : numberOfKeys - totalKeysInOneGeneration*generation);
+                long[] mergeArr = new long[mergeArrLength];
+                for (int i = 0; i < mergeArrLength; ++i) {
+                    long curMinValue = Long.MAX_VALUE;
+
+                    for (int k = 0; k < multiArr.length; ++k) {
+                        if (curIndex[k] < multiArr[k].length && multiArr[k][curIndex[k]] < curMinValue) {
+                            curMinValue = multiArr[k][curIndex[k]];
+                            curNumberOfArrWithMinValue = k;
+                        }
+                    }
+                    mergeArr[i] = curMinValue;
+                    ++curIndex[curNumberOfArrWithMinValue];
+
+                    if (curIndex[curNumberOfArrWithMinValue] == multiArr[curNumberOfArrWithMinValue].length) {
+
+                        if(curGeneration[curNumberOfArrWithMinValue]<maxGeneration) {
+
+                            LinkedBlockingDeque<long[]> deque = dequeMap.get(id[curNumberOfArrWithMinValue]);
+
+                            multiArr[curNumberOfArrWithMinValue] = deque.takeFirst();
+
+                            curIndex[curNumberOfArrWithMinValue] = 0;
+                            ++curGeneration[curNumberOfArrWithMinValue];
+                        }
                     }
                 }
-                mergeArr[i] = curMinValue;
-                ++curIndex[curNumberOfArrWithMinValue];
 
-                if (curIndex[curNumberOfArrWithMinValue] == multiArr[curNumberOfArrWithMinValue].length) {
-
-                    if(curGeneration[curNumberOfArrWithMinValue]<maxGeneration) {
-
-                        LinkedBlockingDeque<long[]> deque = dequeMap.get(id[curNumberOfArrWithMinValue]);
-
-                        multiArr[curNumberOfArrWithMinValue] = deque.takeFirst();
-
-                        curIndex[curNumberOfArrWithMinValue] = 0;
-                        ++curGeneration[curNumberOfArrWithMinValue];
-                    }
-                }
-            }
-            if(mergedArr!=null) {
                 for (int i = 0; i < mergeArr.length; ++i) {
-                    mergedArr[i+generation*totalKeysInOneGeneration] = mergeArr[i];
+                    buffer.putLong(mergeArr[i]);
                 }
-            }
-            ++generation;
-        }
+                buffer.flip();
+                writableByteChannel.write(buffer);
+                buffer.clear();
 
-        log.info("End of merging");
+                ++generation;
+            }
+        }
+        catch(IOException e) {
+            log.error("Unexpected error while writing to file.", e);
+        }
     }
 
     public void putArrayInQueue(String id, int numberOfChunk, long[] sortedArr) {

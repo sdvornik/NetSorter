@@ -44,13 +44,14 @@ public class WebSocketServer {
                 .childHandler(new ChannelInitializer<Channel>() {
                     @Override
                     protected void initChannel(Channel ch) throws Exception {
-                        ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new HttpServerCodec());
-                        pipeline.addLast(new HttpObjectAggregator(64 * 1024));
-                        pipeline.addLast(new ChunkedWriteHandler());
-                        pipeline.addLast(new HttpRequestHandler("/ws"));
-                        pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));
-                        pipeline.addLast(new WebSocketFrameHandler());
+                        ch.pipeline().addLast(
+                                new HttpServerCodec(),
+                                new HttpObjectAggregator(64 * 1024),
+                                new ChunkedWriteHandler(),
+                                new HttpRequestHandler("/ws"),
+                                new WebSocketServerProtocolHandler("/ws"),
+                                new WebSocketFrameHandler()
+                        );
                     }
                 });
 

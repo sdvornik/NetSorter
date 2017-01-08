@@ -57,13 +57,12 @@ public class MasterServer {
                                         Long.BYTES,
                                         0,
                                         Long.BYTES
-                                )
+                                ),
+                                new ByteBufToMsgDecoder(),
+                                new MsgToByteEncoder(),
+                                new BufferToArrayCodec(),
+                                new MasterServerHandler()
                         );
-
-                        ch.pipeline().addLast(new ByteBufToMsgDecoder());
-                        ch.pipeline().addLast(new MsgToByteEncoder());
-                        ch.pipeline().addLast(new BufferToArrayCodec());
-                        ch.pipeline().addLast(new MasterServerHandler());
                     }
                 });
 

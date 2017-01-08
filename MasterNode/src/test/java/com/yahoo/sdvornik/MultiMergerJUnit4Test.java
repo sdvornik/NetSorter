@@ -1,32 +1,57 @@
 package com.yahoo.sdvornik;
 
 import com.yahoo.sdvornik.master.Merger;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.EnumSet;
 
 public class MultiMergerJUnit4Test {
 
-    private int NUMBER_OF_KEYS_FOR_ONE_NODE = 25;
 
-    private int ARRAY_SIZE = 5;
+    private final int NUMBER_OF_KEYS_FOR_ONE_NODE = 2500;
+
+    private final int ARRAY_SIZE = 500;
 
     private final String[] id = new String[]{"id1", "id2", "id3"};
 
     private final fj.data.List<String> idList = fj.data.List.iterableList(Arrays.asList(id));
 
-    private final long[] mergedArray = new long[NUMBER_OF_KEYS_FOR_ONE_NODE*id.length];
+    private Merger merger;
 
-    private Merger merger =  new Merger(
-            idList,
-            NUMBER_OF_KEYS_FOR_ONE_NODE*idList.length(),
-            ARRAY_SIZE*idList.length(),
-            mergedArray,
-            null,
-            null,
-            null
-    );
+    private Path pathToResult;
+
+    @Before
+    public void initTest() throws IOException {
+
+        pathToResult = Paths.get(".", Constants.TEST_OUTPUT_FILE_NAME);
+
+        Files.deleteIfExists(pathToResult);
+        Files.createFile(pathToResult);
+
+        merger =  new Merger(
+                idList,
+                NUMBER_OF_KEYS_FOR_ONE_NODE*idList.length(),
+                ARRAY_SIZE*idList.length(),
+                pathToResult,
+                null,
+                null,
+                null
+        );
+    }
+
+    @After
+    public void deleteTestFile() throws IOException {
+        Files.deleteIfExists(pathToResult);
+    }
 
     @Test
     public void testMultiMerger() throws Exception {
@@ -49,12 +74,11 @@ public class MultiMergerJUnit4Test {
                 catch(InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
-
             }
         });
         mainThread.start();
         mainThread.join();
-        Assert.assertTrue(checkSortedArray(mergedArray));
+        Assert.assertTrue(checkSortedArray());
     }
 
     public class ArrayGenerator implements Runnable {
@@ -78,7 +102,25 @@ public class MultiMergerJUnit4Test {
         }
     }
 
-    private boolean checkSortedArray(long[] sortedArr) {
+    private boolean checkSortedArray() throws IOException {
+        long[] sortedArr = null;
+
+        final Path pathToFile = Paths.get(System.getProperty("user.home"), Constants.TEST_OUTPUT_FILE_NAME);
+
+        try (SeekableByteChannel seekableByteChannel =
+                Files.newByteChannel(pathToResult, EnumSet.of(StandardOpenOption.READ))) {
+            int numberOfKeys = (int)seekableByteChannel.size() / Long.BYTES;
+            sortedArr = new long[numberOfKeys];
+
+            ByteBuffer buffer = ByteBuffer.allocate(numberOfKeys*Long.BYTES);
+            seekableByteChannel.read(buffer);
+            buffer.flip();
+
+            for(int i = 0; i < sortedArr.length; ++i) {
+                sortedArr[i] = buffer.getLong();
+            }
+        }
+
         boolean res = true;
         for(int i = 0; i < sortedArr.length-1; ++i) {
             res &= sortedArr[i] <= sortedArr[i+1];
