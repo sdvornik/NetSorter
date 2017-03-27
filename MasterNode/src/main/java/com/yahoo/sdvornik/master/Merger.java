@@ -21,7 +21,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public final class Merger {
 
-    private final static Logger log = LoggerFactory.getLogger(MasterTask.class.getName());
+    private final static Logger log = LoggerFactory.getLogger(MasterTask.class);
 
 
     private final Map<String, LinkedBlockingDeque<long[]>> dequeMap = new HashMap<>();

@@ -17,7 +17,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
 
     private static final File INDEX_FILE;
 
-    private static final Logger log = LoggerFactory.getLogger(HttpRequestHandler.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(HttpRequestHandler.class);
 
     static {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

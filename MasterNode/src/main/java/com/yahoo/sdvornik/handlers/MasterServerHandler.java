@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 @ChannelHandler.Sharable
 public class MasterServerHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(MasterServerHandler.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(MasterServerHandler.class);
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {

@@ -22,7 +22,7 @@ import java.net.InetSocketAddress;
  */
 public class MasterServer {
 
-    private static final Logger log = LoggerFactory.getLogger(MasterServer.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(MasterServer.class);
 
     private final EventLoopGroup masterEventLoopGroup;
 

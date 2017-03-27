@@ -19,7 +19,7 @@ import java.nio.file.Paths;
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
 
 
-    private static final Logger log = LoggerFactory.getLogger(WebSocketFrameHandler.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(WebSocketFrameHandler.class);
 
     private static final String JSON_TYPE_FIELD_NAME = "type";
 

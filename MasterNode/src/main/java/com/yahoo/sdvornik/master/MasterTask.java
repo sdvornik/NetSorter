@@ -24,7 +24,7 @@ public enum MasterTask {
 
     INSTANCE;
 
-    private final Logger log = LoggerFactory.getLogger(MasterTask.class.getName());
+    private final Logger log = LoggerFactory.getLogger(MasterTask.class);
     private final static ThreadLocalRandom random = ThreadLocalRandom.current();
 
     private AtomicInteger lock = new AtomicInteger(0);

@@ -15,7 +15,7 @@ import java.util.List;
 
 public class BufferToArrayCodec extends MessageToMessageCodec<DataMessageBuffer,DataMessageArray> {
 
-    private static final Logger log = LoggerFactory.getLogger(BufferToArrayCodec.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(BufferToArrayCodec.class);
 
     @Override
     protected void encode(ChannelHandlerContext ctx, DataMessageArray msg, List<Object> out) throws Exception {

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class MsgToByteEncoder extends MessageToByteEncoder<Message>{
 
-    private static final Logger log = LoggerFactory.getLogger(MsgToByteEncoder.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(MsgToByteEncoder.class);
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) throws Exception {

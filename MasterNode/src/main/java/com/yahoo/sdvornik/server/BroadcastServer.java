@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class BroadcastServer {
 
-    private static final Logger log = LoggerFactory.getLogger(BroadcastServer.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(BroadcastServer.class);
 
     private final EventLoopGroup udpEventLoopGroup;
 

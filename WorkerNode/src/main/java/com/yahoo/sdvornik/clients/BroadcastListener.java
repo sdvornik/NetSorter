@@ -19,7 +19,7 @@ import java.net.InetSocketAddress;
  */
 public class BroadcastListener {
 
-    private static final Logger log = LoggerFactory.getLogger(BroadcastListener.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(BroadcastListener.class);
 
     private final EventLoopGroup broadcastListenerGroup = new NioEventLoopGroup();
 

@@ -16,7 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class WorkerClientHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(WorkerClientHandler.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(WorkerClientHandler.class);
 
     private final ReentrantLock connectionLock;
 

@@ -20,7 +20,7 @@ public enum MasterEntryPoint {
 
     INSTANCE;
 
-    private final Logger log = LoggerFactory.getLogger(MasterEntryPoint.class.getName());
+    private final Logger log = LoggerFactory.getLogger(MasterEntryPoint.class);
 
     private final EventLoopGroup masterEventLoopGroup = new NioEventLoopGroup();
 

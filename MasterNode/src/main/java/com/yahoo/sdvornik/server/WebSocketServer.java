@@ -21,7 +21,7 @@ import java.net.InetSocketAddress;
  * WebSocket server
  */
 public class WebSocketServer {
-    private static final Logger log = LoggerFactory.getLogger(WebSocketServer.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(WebSocketServer.class);
 
     private final EventLoopGroup wsEventLoopGroup;
 

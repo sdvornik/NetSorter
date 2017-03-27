@@ -14,7 +14,7 @@ import java.util.List;
 
 public class ByteBufToMsgDecoder extends MessageToMessageDecoder<ByteBuf> {
 
-    private static final Logger log = LoggerFactory.getLogger(ByteBufToMsgDecoder.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(ByteBufToMsgDecoder.class);
 
 
     @Override

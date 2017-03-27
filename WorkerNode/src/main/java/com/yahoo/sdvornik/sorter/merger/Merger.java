@@ -26,7 +26,7 @@ public enum Merger {
 
     INSTANCE;
 
-    private final Logger log = LoggerFactory.getLogger(Merger.class.getName());
+    private final Logger log = LoggerFactory.getLogger(Merger.class);
 
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
 

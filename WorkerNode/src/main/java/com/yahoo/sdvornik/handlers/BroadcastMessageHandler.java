@@ -14,7 +14,7 @@ import java.net.InetSocketAddress;
 
 public class BroadcastMessageHandler extends SimpleChannelInboundHandler<BroadcastMessage> {
 
-    private static final Logger log = LoggerFactory.getLogger(BroadcastMessageHandler.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(BroadcastMessageHandler.class);
 
 
     @Override

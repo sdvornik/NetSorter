@@ -13,7 +13,7 @@ import java.net.UnknownHostException;
  */
 public final class BroadcastMessage {
 
-    private static final Logger log = LoggerFactory.getLogger(BroadcastMessage.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(BroadcastMessage.class);
 
     public static BroadcastMessage getMsgFromBuffer(ByteBuf buffer) {
 

@@ -26,7 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class WorkerClient {
 
-    private static final Logger log = LoggerFactory.getLogger(WorkerClient.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(WorkerClient.class);
 
     private static final int TIMEOUT_IN_MS = 1000;
 

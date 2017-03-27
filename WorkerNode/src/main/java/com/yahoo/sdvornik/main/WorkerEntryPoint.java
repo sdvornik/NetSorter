@@ -12,7 +12,7 @@ public enum WorkerEntryPoint {
 
     INSTANCE;
 
-    private final Logger log = LoggerFactory.getLogger(WorkerEntryPoint.class.getName());
+    private final Logger log = LoggerFactory.getLogger(WorkerEntryPoint.class);
 
     private final BroadcastListener broadcastListener = new BroadcastListener();
 

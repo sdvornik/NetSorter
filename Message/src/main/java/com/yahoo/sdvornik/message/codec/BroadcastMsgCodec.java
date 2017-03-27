@@ -16,7 +16,7 @@ import java.util.List;
 
 public class BroadcastMsgCodec extends MessageToMessageCodec<DatagramPacket, BroadcastMessage> {
 
-    private static final Logger log = LoggerFactory.getLogger(BroadcastMsgCodec.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(BroadcastMsgCodec.class);
 
     private final InetSocketAddress broadcastAddress;
 
