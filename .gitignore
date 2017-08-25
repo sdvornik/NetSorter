@@ -25,5 +25,9 @@ hs_err_pid*
 
 #IDEA
 *.iml
-.idea
 
+/.idea/
+/build/
+/shared/out
+/worker/out/
+/master/out/

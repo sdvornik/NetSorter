@@ -1,0 +1,5 @@
+rootProject.name = 'net_sorter'
+include 'master'
+include 'worker'
+include 'shared'
+
